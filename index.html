@@ -516,25 +516,29 @@ if(location.hash.indexOf('edit') >= 0) document.body.classList.add('editmode');
 
 /* ============ 1. КЛАССИФИКАТОР: имя строки из Excel → категория и визуальная роль ============ */
 function classify(name){
-  var n = name.toLowerCase();
+  var n = name.toLowerCase().replace(/ё/g, 'е');
   if(/полотно/.test(n)) return { cat:'canvas', role: /бесщелев/.test(n) ? 'seamless-canvas' : 'canvas',
-    brand: /bauf/.test(n) ? 'Bauf' : /classic/.test(n) ? 'MSD Classic' : /premium/.test(n) ? 'MSD Premium' : 'полотно',
+    brand: /bauf/.test(n) ? 'Bauf' : /halead/.test(n) ? 'Halead' : /teqtum/.test(n) ? 'Teqtum KM2'
+      : /msd/.test(n) && /classic/.test(n) ? 'MSD Classic' : /msd/.test(n) && /premium/.test(n) ? 'MSD Premium' : 'полотно',
     width: /до 6/.test(n) ? 6 : /до 5/.test(n) ? 5 : 3.6 };
-  if(/подсветка/.test(n)) return { cat:'light', role:'led' };
-  if(/световая линия|световые линии/.test(n)) return { cat:'light', role:'line' };
+  /* принадлежности световой линии и трека — отдельные строки, не метры линии */
+  if(/экран|поворот/.test(n) && /светов/.test(n)) return { cat:'light', role:'extra' };
+  /* углы теневого и парящего профиля считаются штуками — до проверки «парящ»/«тенев» */
+  if(/^угол\s|обработк\S* углов|углов\S* обработк/.test(n)) return { cat:'profile', role:'corners' };
+  if(/подсветка|светодиодн/.test(n)) return { cat:'light', role:'led' };
+  if(/светов\S* лини/.test(n)) return { cat:'light', role:'line' };
   if(/трек/.test(n)) return { cat:'light', role:'track' };
   if(/люстр/.test(n)) return { cat:'light', role: /установка/.test(n) ? 'chandelier-install' : 'chandelier' };
   if(/точки освещения|точек освещения/.test(n)) return { cat:'light', role:'spot' };
-  if(/установка.*светильник|накладн|подвесн/.test(n)) return { cat:'light', role:'spot-install' };
+  if(/установка.*светильник|накладн\S* светильник|подвесн/.test(n)) return { cat:'light', role:'spot-install' };
   if(/светильник|лампа/.test(n)) return { cat:'light', role:'fixture' };
-  if(/карниз|гардина/.test(n)) return { cat:'cornice', role:'cornice' };
+  if(/карниз|гардин|ниш/.test(n)) return { cat:'cornice', role:'cornice' };
   if(/бесщелев/.test(n)) return { cat:'profile', role:'seamless' };
   if(/парящ/.test(n)) return { cat:'profile', role:'float' };
-  if(/раздел/.test(n)) return { cat:'profile', role:'divider' };
+  if(/раздел|отсечн/.test(n)) return { cat:'profile', role:'divider' };
   if(/теневой|kraab|бизон/.test(n)) return { cat:'profile', role:'shadow' };
   if(/стеновой/.test(n)) return { cat:'profile', role:'standard' };
   if(/молдинг|вставка/.test(n)) return { cat:'profile', role:'molding' };
-  if(/углов/.test(n)) return { cat:'profile', role:'corners' };
   if(/закладн/.test(n)) return { cat:'extra', role:'extra' };
   return { cat:'extra', role:'extra' };
 }
@@ -545,7 +549,7 @@ var ROLE_DESC = {
   canvas:'Полотно кроится под комнату с запасом, по краю приваривается кант.',
   'seamless-canvas':'Полотно с особой кромкой для бесщелевого примыкания — считается за м² отдельно от самого полотна.',
   led:'Лента и блок питания в пазу ниши: вечером свет идёт сверху по шторе.',
-  line:'Светящаяся полоса 30 мм заподлицо с потолком, в сборе с оборудованием. Считается за метр.',
+  line:'Световая линия заподлицо с полотном: профиль монтируется в потолок, свет идёт полосой. Считается за метр.',
   track:'Магнитная шина в потолке: светильники переставляются рукой без инструмента. Сами светильники — отдельно.',
   chandelier:'Платформа и вывод провода под люстру; сама люстра ваша.',
   'chandelier-install':'Повесить и подключить люстру, которую вы купили.',
