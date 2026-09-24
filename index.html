@@ -106,6 +106,7 @@ h2{font-size:clamp(28px,4vw,40px);line-height:1.1;letter-spacing:0}
   background:var(--canvas);transition:.15s;font-weight:500;letter-spacing:-.374px;border:1px solid var(--div);min-height:60px}
 .sec.w .ct{background:var(--surf);border:none}
 .ct:hover{background:#E8E8ED}
+button.ct{width:100%;text-align:left;cursor:pointer;line-height:inherit;font-family:inherit}
 .ct small{display:block;color:var(--mut);font-size:13px;font-weight:400;letter-spacing:-.08px;margin-top:1px}
 .ct .ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:#fff;font-size:13px;font-weight:700;letter-spacing:0}
 .ct .ic svg{width:18px;height:18px;display:block}
@@ -116,16 +117,17 @@ body.editmode .edit{display:block}
 .edit b{color:var(--ink-bd)}
 .edit ul{margin:8px 0 0 18px}
 .edit li{margin-top:4px}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(100px);z-index:60;background:rgba(29,29,31,.92);backdrop-filter:blur(20px);
-  color:#fff;border-radius:980px;padding:12px 22px;font-size:15px;transition:transform .3s;max-width:calc(100vw - 28px);text-align:center;letter-spacing:-.2px}
-.toast.show{transform:translateX(-50%) translateY(0)}
+/* тост выше нижних 64px: правый нижний угол занят плавающими кнопками платформы */
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(16px);opacity:0;visibility:hidden;z-index:60;background:rgba(29,29,31,.92);backdrop-filter:blur(20px);
+  color:#fff;border-radius:980px;padding:12px 22px;font-size:15px;transition:transform .3s,opacity .3s,visibility .3s;max-width:calc(100vw - 28px);text-align:center;letter-spacing:-.2px}
+.toast.show{transform:translateX(-50%);opacity:1;visibility:visible}
 .mbar{position:fixed;left:12px;right:12px;bottom:72px;z-index:45;display:none;gap:12px;align-items:center;
   background:rgba(251,251,253,.86);backdrop-filter:saturate(180%) blur(20px);border-radius:var(--r-lg);padding:12px 14px 12px 18px;box-shadow:0 8px 30px rgba(0,0,0,.14);border:1px solid rgba(0,0,0,.06)}
 .mbar .mv{flex:1;min-width:0}
 .mbar .mv b{display:block;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15;letter-spacing:-.374px}
 .mbar .mv small{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mbar button{background:var(--blue);color:#fff;border:none;border-radius:980px;padding:11px 18px;font-size:15px;font-weight:500;cursor:pointer;letter-spacing:-.2px}
-@media(max-width:980px){.mbar{display:flex}.foot{padding-bottom:176px}}
+@media(max-width:980px){.mbar{display:flex}.foot{padding-bottom:176px}.toast{bottom:152px}}
 @media print{.top,.mbar,.toast,.edit,.demo,.btn,.lb,.vbtn,.more,.vcard:not(.hasposter),.okact{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.ph2,.vcard,.team,.ct,.k,.it{break-inside:avoid}.ph2 img{transform:none!important}.foot{padding:10px 0 0!important}.sec{padding:14px 0}.sec{padding:16px 0;break-inside:avoid}.sum{position:static}}
 </style>
 
@@ -179,7 +181,7 @@ body.editmode .edit{display:block}
 .sec:not(.w) .it .sb{background:var(--canvas)}
 .it .sb button{width:30px;height:30px;border:none;background:none;font-size:17px;color:var(--blue);cursor:pointer;line-height:1;font-weight:500}
 .it .sb span{width:36px;line-height:30px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.it .sw{width:38px;height:24px;border-radius:12px;background:#E9E9EB;position:relative;flex-shrink:0;transition:.2s;cursor:pointer}
+.it .sw{width:38px;height:24px;border-radius:12px;background:#E9E9EB;position:relative;flex-shrink:0;transition:.2s;cursor:pointer;border:none;padding:0}
 .it .sw:after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:.2s}
 .it:not(.off) .sw{background:var(--green)}
 .it:not(.off) .sw:after{transform:translateX(14px)}
@@ -215,7 +217,7 @@ body.editmode .edit{display:block}
 .lb button{position:absolute;border:none;background:rgba(255,255,255,.14);color:#fff;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;display:grid;place-items:center;line-height:1}
 .lb button:hover{background:rgba(255,255,255,.24)}
 .lb .x{top:10px;right:12px}.lb .pv{left:14px;top:50%}.lb .nx{right:14px;top:50%}
-@media(max-width:600px){.lb .pv,.lb .nx{top:auto;bottom:18px}.lb .lbc{margin-bottom:56px}}
+@media(max-width:600px){.lb .pv,.lb .nx{background:rgba(0,0,0,.42)}.lb .pv{left:8px}.lb .nx{right:8px}}
 /* шапка: логотип */
 .brand{display:flex;align-items:center;flex-shrink:0;line-height:0}
 .brand svg,.brand img{height:26px;width:auto;display:block}
@@ -234,18 +236,24 @@ body.editmode .edit{display:block}
 .who .wl{font-size:14px;color:var(--mut);font-weight:500;letter-spacing:-.224px}
 .who .wn{font-size:clamp(26px,3vw,32px);font-weight:600;letter-spacing:-.4px;line-height:1.1;margin-top:4px}
 .who .wr{font-size:15px;color:var(--mut);margin-top:4px;letter-spacing:-.2px}
+/* пустая смета (черновик OpMax без позиций): прячем всё, что считается из сметы */
+body.noest .needest{display:none!important}
+.empty{display:none;margin-top:28px;border:1px dashed var(--line2);border-radius:var(--r-lg);padding:clamp(22px,4vw,36px);background:var(--surf);
+  font-size:clamp(17px,2vw,21px);font-weight:500;letter-spacing:-.3px;line-height:1.35;color:var(--ink2)}
+.empty small{display:block;margin-top:6px;font-size:14px;font-weight:400;color:var(--mut);letter-spacing:-.2px}
+body.noest .empty{display:block}
 </style>
 
 <header class="top">
   <div class="topin">
     <span class="brand" id="brand"></span>
-    <span class="stamp"><b id="hNum">КП № 0915</b><span class="hid"> · <span id="hDate">15.09.2026</span></span></span>
+    <span class="stamp"><b id="hNum">КП</b><span class="hid" id="hDateW" hidden> · <span id="hDate"></span></span></span>
     <span class="stamp hid" id="hMgr"></span>
     <nav class="tnav" id="hNav"></nav>
   </div>
 </header>
-<div class="valid">Цена действительна до <span id="hUntil">24.09.2026</span></div>
-<div class="demo" id="demoBox"><b>Шаблон · реальные сметы Павла</b><select id="demoSel" onchange="loadDemo(this.value)"></select><small>На платформе этой полосы нет — смета приходит из OpMax</small></div>
+<div class="valid needest" id="hValid" hidden>Цена действительна до <span id="hUntil"></span></div>
+<div class="demo" id="demoBox" hidden><b>Шаблон · реальные сметы Павла</b><select id="demoSel" aria-label="Демо-смета"></select><small>На платформе этой полосы нет — смета приходит из OpMax</small></div>
 
 <!-- ПОТОЛОК -->
 <section class="sec hero" data-kp-block="cover">
@@ -256,20 +264,21 @@ body.editmode .edit{display:block}
         <h1 style="margin-top:10px" id="h1"></h1>
         <p class="hsub" id="hsub"></p>
       </div>
-      <div class="price num"><small>Итого</small><span id="hTotal"></span></div>
+      <div class="price num needest"><small>Итого</small><span id="hTotal"></span></div>
     </div>
 
-    <div class="cut" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
-    <div class="leg" id="leg"></div>
+    <div class="empty" id="emptyBox">Смета появится здесь — добавьте позиции в редакторе OpMax<small>Итог, разрез потолка и варианты построятся по позициям сметы сами.</small></div>
+    <div class="cut needest" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
+    <div class="leg needest" id="leg"></div>
 
-    <div id="varsPan" style="display:none">
+    <div id="varsPan" class="needest" style="display:none">
       <div class="vars" id="vars"></div>
     </div>
   </div>
 </section>
 
 <!-- СМЕТА -->
-<section class="sec w" id="smeta" data-kp-block="quote-multi">
+<section class="sec w needest" id="smeta" data-kp-block="smeta">
   <div class="wrap">
     <span class="no">Смета</span>
     <h2 style="margin-top:10px">Состав и цена</h2>
@@ -282,8 +291,8 @@ body.editmode .edit{display:block}
           <div class="sv num" id="sTotal"></div>
           <div class="sn" id="sNote"></div>
           <div id="sRows"></div>
-          <button class="btn btn2" style="background:var(--ink-b);color:#fff" onclick="approve()">Согласовать</button>
-          <button class="btn btn2" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);margin-top:8px" onclick="copySpec()">Скопировать смету</button>
+          <button type="button" class="btn btn2" style="background:var(--ink-b);color:#fff" data-act="approve">Согласовать</button>
+          <button type="button" class="btn btn2 g" style="margin-top:8px" data-act="copySpec">Скопировать смету</button>
         </div>
       </aside>
     </div>
@@ -291,13 +300,13 @@ body.editmode .edit{display:block}
     <div class="edit">
       <b>Служебная панель — только по ссылке с #edit</b>
       <ul>
-        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {addr, num, date, until, discount, items:[{name, unit, price, qty}], photos:[url…]}</code>. Имена позиций — как в Excel Павла; страница сама определяет систему примыкания, свет, карнизы и строит потолок.</li>
+        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional}], contacts, media}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит потолок. Единицы: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить.</li>
         <li>Два варианта одному клиенту: <code>variants:[{title, note, items}]</code> вместо <code>items</code>.</li>
         <li><code>qty</code> — число (всё в «Общая») или объект <code>{"Общая":2.8,"Детская":3.1}</code>.</li>
-        <li>Проверено на 7 сметах (8 вариантов) — сходятся с Excel до рубля, включая скидки.</li>
-        <li>Если платформа передала конфиг без сметы, показывается условный пример без чужих адресов, селектор демо скрыт.</li>
-        <li><b>Согласовать</b> ничего не отправляет само: собирает сообщение с составом (что убрано/изменено) и открывает WhatsApp менеджера, либо даёт скопировать. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>.</li>
-        <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, whatsapp, telegram, max}</code>. Телефон/WhatsApp/Telegram — как в блоке «Контакты» OpMax; <code>name</code>, <code>role</code> и <code>max</code> — новые поля. <b>Сейчас OpMax их в KP_CONFIG не передаёт</b> — нужна доработка платформы (профиль менеджера → KP_CONFIG.contacts). Без них блок показывает только компанию, чужие контакты не подставляются. Пустые каналы не показываются; в шапке — «Позвонить» и первый заполненный мессенджер. Telegram — ник, ссылка или номер; MAX — ссылка или ник.</li>
+        <li>Номер, дата и срок — только из конфига: нет <code>num</code> — в шапке «КП» без номера, нет <code>until</code> — полосы «Цена действительна до» нет. Ничего не выдумывается.</li>
+        <li>Конфиг без сметы (свежий черновик) — в первом экране «Смета появится здесь», блоки сметы скрыты. <code>demo:true</code> (предпросмотр макета) — одна встроенная смета с пометкой «Пример» и без контактов.</li>
+        <li><b>Согласовать</b> ничего не отправляет само: собирает сообщение с составом (что убрано/изменено/добавлено) — клиент копирует его и сам пишет в MAX или Telegram. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>.</li>
+        <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, max, telegram}</code>. MAX — ссылка (max.ru/…) или номер: по номеру ссылки нет, карточка копирует номер. Telegram — ник, ссылка или номер. WhatsApp не показывается. Без контактов блок показывает только компанию, чужие контакты не подставляются. В шапке — «Позвонить» и первый мессенджер (MAX, затем Telegram).</li>
         <li><b>Фото и видео</b> — из загрузок OpMax (<code>media:[{url, kind, name}]</code>). Объектом считается только файл, в имени которого есть тег или слово «объект»/«работа»: «теневой», «парящий», «линии», «трек», «карниз/ниша», «подсветка», «бесщелевой»… Такие фото встают перед библиотекой компании; страница ставит вперёд объекты с тем, что есть в смете, и отодвигает фото с фишками, которых в смете нет. Файл с «команда» в имени — фото команды; видео с тегом/«объект» в имени — ролик блока (в PDF печатается только с обложкой: файл «обложка»/«poster»).</li>
       </ul>
     </div>
@@ -305,7 +314,7 @@ body.editmode .edit{display:block}
 </section>
 
 <!-- ЧТО ВАЖНО ЗНАТЬ -->
-<section class="sec" data-kp-block="terms">
+<section class="sec needest" data-kp-block="terms">
   <div class="wrap">
     <span class="no">Коротко</span>
     <h2 style="margin-top:10px">Что важно знать</h2>
@@ -325,7 +334,7 @@ body.editmode .edit{display:block}
     <h2 style="margin-top:10px" id="phTitle">Наши работы</h2>
     <p class="lead" id="phLead"></p>
     <div class="photos" id="photos"></div>
-    <button class="btn g more" id="phMore" onclick="openLb(0)" hidden></button>
+    <button type="button" class="btn g more" id="phMore" data-act="openLb" data-arg="0" hidden></button>
   </div>
 </section>
 
@@ -333,15 +342,15 @@ body.editmode .edit{display:block}
 <section class="sec" id="accept" data-kp-block="accept">
   <div class="wrap">
     <div class="acc">
-      <div class="accr">
+      <div class="accr needest">
         <div>
           <div class="al">Итого</div>
           <div class="av num" id="aTotal"></div>
           <div class="ad" id="aDesc"></div>
         </div>
-        <div class="acb"><button class="btn p" onclick="approve()">Согласовать</button><small>Подготовим сообщение менеджеру с этим составом — отправляете вы сами</small></div>
+        <div class="acb"><button type="button" class="btn p" data-act="approve">Согласовать</button><small>Подготовим сообщение менеджеру с этим составом — отправляете вы сами</small></div>
       </div>
-      <div class="okb" id="okBox"></div>
+      <div class="okb needest" id="okBox" aria-live="polite"></div>
       <div class="mgr" id="mgr">
         <figure class="team" id="team" hidden><img id="teamImg" alt=""><figcaption id="teamCap"></figcaption></figure>
         <div class="who">
@@ -359,27 +368,29 @@ body.editmode .edit{display:block}
   <span id="fCo"></span><br>
   <span id="fLine"></span>
 </div>
-<div class="mbar">
+<div class="mbar needest">
   <span class="mv"><b class="num" id="mTotal"></b><small id="mSub"></small></span>
-  <button onclick="go('accept')">Согласовать</button>
+  <button type="button" data-act="go" data-arg="accept">Согласовать</button>
 </div>
-<div class="toast" id="toastEl"></div>
+<div class="toast" id="toastEl" role="status" aria-live="polite"></div>
+<div hidden data-kp-estimate data-kp-contacts></div>
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Фото объектов">
-  <button class="x" onclick="closeLb()" aria-label="Закрыть">×</button>
-  <button class="pv" onclick="stepLb(-1)" aria-label="Предыдущее">‹</button>
+  <button type="button" class="x" data-act="closeLb" aria-label="Закрыть">×</button>
+  <button type="button" class="pv" data-act="stepLb" data-arg="-1" aria-label="Предыдущее">‹</button>
   <img id="lbImg" alt="">
   <div class="lbc" id="lbCap"></div>
-  <button class="nx" onclick="stepLb(1)" aria-label="Следующее">›</button>
+  <button type="button" class="nx" data-act="stepLb" data-arg="1" aria-label="Следующее">›</button>
 </div>
 
 <script>
-/* ===== 7 РЕАЛЬНЫХ СМЕТ ПАВЛА (8 вариантов) — для проверки шаблона и демо-переключателя =====
-   Формат, в котором OpMax должен передавать смету в window.KP_CONFIG (сейчас платформа её ещё не передаёт).
-   items: name — как в Excel, unit — м2/м.п/м/шт, price — ₽ за единицу, qty — по колонкам комнат.
-   qty: число (всё в «Общая») или объект {room: qty}. discount — % как в Excel.
-   variants: [{title, note, items}] — несколько вариантов одному клиенту (стандарт / теневой), переключатель с разницей цены. */
+/* ===== 7 РЕАЛЬНЫХ СМЕТ ПАВЛА (8 вариантов) — для проверки шаблона и демо-переключателя (только GitHub-демо) =====
+   Формат совпадает с window.KP_CONFIG платформы: items: name — как в Excel/каталоге, unit — м2/м²/кв.м, м.п/пог.м/м, шт;
+   price — ₽ за единицу (можно с копейками), qty — число или объект {room: qty}. discount — % как в Excel.
+   variants: [{title, note, items}] — несколько вариантов одному клиенту (стандарт / теневой), переключатель с разницей цены.
+   num, date, until — ОБРАЗЦЫ только для этого демо. На платформе номер и сроки берутся лишь из KP_CONFIG; нет — не показываем.
+   В сборку для OpMax попадает одна смета (gaiduk) — как «Пример» для предпросмотра макета, без номера и сроков. */
 var DEMOS = [
-{ key:'lenina', title:'Ленина 95 · стандарт с гардиной', addr:'Ленина, 95', num:'0915', discount:0,
+{ key:'lenina', title:'Ленина 95 · стандарт с гардиной', addr:'Ленина, 95', num:'0915', date:'2026-09-15', until:'2026-09-24', discount:0,
   items:[
     {name:'Полотно MSD premium (китай) до 3,6м', unit:'м2', price:550, qty:50},
     {name:'Профиль стеновой ПВХ с установкой', unit:'м.п', price:120, qty:73},
@@ -389,7 +400,7 @@ var DEMOS = [
     {name:'Подсветка карниза (блок+лента)', unit:'м', price:1300, qty:6.5},
     {name:'Работа по оконной раме с ребрами жесткости', unit:'шт', price:3000, qty:1}
   ]},
-{ key:'pupko', title:'Бориса Пупко · теневой профиль', addr:'Бориса Пупко', num:'0916', discount:0,
+{ key:'pupko', title:'Бориса Пупко · теневой профиль', addr:'Бориса Пупко', num:'0916', date:'2026-09-15', until:'2026-09-24', discount:0,
   items:[
     {name:'Полотно MSD premium (китай) до 3,6м', unit:'м2', price:500, qty:48},
     {name:'Полотно MSD premium (китай) до 5м', unit:'м2', price:600, qty:11},
@@ -403,7 +414,7 @@ var DEMOS = [
     {name:'Установка накладного/подвесного светильника', unit:'шт', price:400, qty:62},
     {name:'Работа по керамограниту (сверление)', unit:'м', price:800, qty:18}
   ]},
-{ key:'gaiduk', title:'Гайдук · два варианта: стандарт и теневой', addr:'Гайдук', num:'0917', discount:12,
+{ key:'gaiduk', title:'Гайдук · два варианта: стандарт и теневой', addr:'Гайдук', num:'0917', date:'2026-09-15', until:'2026-09-24', discount:12,
   variants:[
     { title:'Стандарт', note:'стеновой профиль со вставкой', items:[
     {name:'Полотно MSD premium (китай) до 3,6м', unit:'м2', price:500, qty:90},
@@ -438,7 +449,7 @@ var DEMOS = [
     {name:'Доп. выезд бригады на второй этап работ', unit:'шт', price:2000, qty:1}
   ] }
   ]},
-{ key:'glebovka', title:'Глебовка · Иван', addr:'Глебовка', client:'Иван', num:'0919', discount:0,
+{ key:'glebovka', title:'Глебовка · Иван', addr:'Глебовка', client:'Иван', num:'0919', date:'2026-09-15', until:'2026-09-24', discount:0,
   items:[
     {name:'Полотно MSD premium (китай) до 3,6м', unit:'м2', price:550, qty:63},
     {name:'Профиль стеновой ПВХ с установкой', unit:'м.п', price:120, qty:85},
@@ -449,7 +460,7 @@ var DEMOS = [
     {name:'Встроенный карниз алюм. АК 0270 (трехряд) с монтажем', unit:'м.п', price:5000, qty:3.4},
     {name:'Обход душевой лейки', unit:'шт', price:4000, qty:1}
   ]},
-{ key:'mefodievka', title:'Мефодиевка · MSD Classic', addr:'Мефодиевка', num:'0920', discount:12,
+{ key:'mefodievka', title:'Мефодиевка · MSD Classic', addr:'Мефодиевка', num:'0920', date:'2026-09-15', until:'2026-09-24', discount:12,
   items:[
     {name:'Полотно MSD Classic (китай) до 3,6м', unit:'м2', price:500, qty:120},
     {name:'Полотно MSD Classic (китай) до 5м', unit:'м2', price:600, qty:20},
@@ -459,7 +470,7 @@ var DEMOS = [
     {name:'Доп. выезд бригады на второй этап работ', unit:'шт', price:2000, qty:1},
     {name:'Профиль стеновой ПВХ с установкой', unit:'м.п', price:120, qty:143}
   ]},
-{ key:'floor1', title:'1 этаж · теневой бизон', addr:'Потолки, 1 этаж', num:'0921', discount:16,
+{ key:'floor1', title:'1 этаж · теневой бизон', addr:'Потолки, 1 этаж', num:'0921', date:'2026-09-15', until:'2026-09-24', discount:16,
   items:[
     {name:'Полотно MSD premium (китай) до 3,6м', unit:'м2', price:500, qty:60},
     {name:'Профиль стеновой ПВХ с установкой', unit:'м.п', price:120, qty:10},
@@ -472,7 +483,7 @@ var DEMOS = [
     {name:'Встроенный карниз алюм. ПК-5, (трехряд), с монтажем', unit:'м.п', price:2900, qty:3.2},
     {name:'Закладной брус 30x40, с монтажем', unit:'м.п', price:600, qty:3}
   ]},
-{ key:'avenue', title:'Авеню, 2 эт · бесщелевой Bauf', addr:'Авеню, 2-й этаж', num:'0922', discount:0,
+{ key:'avenue', title:'Авеню, 2 эт · бесщелевой Bauf', addr:'Авеню, 2-й этаж', num:'0922', date:'2026-09-15', until:'2026-09-24', discount:0,
   items:[
     {name:'Полотно Bauf 205 (германия) до 6м', unit:'м2', price:800, qty:23},
     {name:'Полотно Bauf 205 (германия) до 3,6м', unit:'м2', price:700, qty:3.6},
@@ -494,7 +505,7 @@ var DEMOS = [
 
 /* Профиль компании для демо: в макете один раз (логотип, команда, видео, библиотека фото с тегами).
    На платформе контакты приходят из KP_CONFIG.contacts (у каждого менеджера свои), фото и видео — из загрузок KP_CONFIG.media. */
-var DEMO_PROFILE = {"company": {"name": "Высокий уровень", "city": "Новороссийск", "what": "натяжные потолки", "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1900 310\" role=\"img\" aria-label=\"Высокий уровень\"><g transform=\"translate(-358.5,-249.3)\"><rect fill=\"#FFC81A\" x=\"358.5\" y=\"249.3\" width=\"109.8\" height=\"309.3\"/><path fill=\"#1D2C38\" d=\"M479.5,249.3l0,174.3h0v4.7h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4 l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4h2.1h2.8l0-205.1l-78.7,0v68.4h-15.5v-88.2l109.7,0l0,224.9h4.9l0-231.2l-119.5,0 v94.5h-15.5V307.8h150.5l0,251h4.9l0-257.3H520.3v120.6h-15.5V281.7l191.3,0v277.1h4.9V275.4l-201.1,0v146.7h-15.5l0-166.4 l232.1,0v303.1h4.9V249.3L479.5,249.3z M566.1,360l68.9,0l0,62.1h-68.9V360z\"/></g><g transform=\"translate(442,93.0) scale(1.4762) translate(-47,-639)\"><path fill=\"#FFC81A\" d=\"M106.8,703.5c0,11.3-9.3,18.4-25.9,18.4H47v-63.5h32.2c15.7,0,24.8,6.1,24.8,16.6c0,6.1-3,10.8-8.2,13.6 C102.8,691.1,106.8,696.1,106.8,703.5z M68.1,682.8h9.1c3.6,0,5.3-1.5,5.3-4.6c0-3.1-1.6-4.8-5.3-4.8h-9.1V682.8z M85.2,701.8 c0-3.3-1.7-4.9-5.3-4.9H68.1v10h11.9C83.5,706.9,85.2,705.1,85.2,701.8z\"/><path fill=\"#FFC81A\" d=\"M173.4,698.8c0,15.2-10.7,23.1-27.5,23.1h-31.5v-63.5h21.1v19.5h13.2C164.2,677.9,173.4,684.8,173.4,698.8z M151.9,699.2c0-4.8-3.2-6.4-7.4-6.4h-9v14.1h9C148.7,706.9,151.9,704.1,151.9,699.2z M179.3,658.4h21.1v63.5h-21.1V658.4z\"/><path fill=\"#FFC81A\" d=\"M208.1,690.1c0-19.5,15-33.2,35.4-33.2c12.4,0,22.2,4.5,28.5,12.7l-13.5,12.1c-3.7-4.7-8.2-7.4-13.9-7.4 c-8.9,0-14.9,6.2-14.9,15.9c0,9.7,6,15.9,14.9,15.9c5.7,0,10.2-2.7,13.9-7.4l13.5,12.1c-6.3,8.2-16.1,12.7-28.5,12.7 C223.1,723.3,208.1,709.6,208.1,690.1z\"/><path fill=\"#FFC81A\" d=\"M273.6,690.1c0-19.2,15.2-33.2,35.9-33.2s35.9,14,35.9,33.2c0,19.2-15.2,33.2-35.9,33.2 S273.6,709.4,273.6,690.1z M323.7,690.1c0-9.9-6.4-15.9-14.3-15.9c-7.9,0-14.3,6-14.3,15.9s6.4,15.9,14.3,15.9 C317.3,706,323.7,700,323.7,690.1z\"/><path fill=\"#FFC81A\" d=\"M397.4,689.2l18.8,32.7H392l-12.2-23h-6v23h-21.4v-63.5h21.4V682h6.5l13.5-23.7h22.3L397.4,689.2z\"/><path fill=\"#FFC81A\" d=\"M420.6,658.4h21.1v33l21.9-33h20.2v63.5h-21.1v-33l-21.8,33h-20.2V658.4z\"/><path fill=\"#FFC81A\" d=\"M494.9,658.4H516v33l21.9-33H558v63.5H537v-33l-21.8,33h-20.2V658.4z M506.6,639.1h14.3c0,4,1.4,5.8,5.5,5.8 c4.2,0,5.7-1.8,5.7-5.8h14.3c0,10.1-5.5,15.6-20,15.6C512,654.7,506.6,649.2,506.6,639.1z\"/><path fill=\"#1D2C38\" d=\"M627.1,658.4l-27.6,51.3c-4.9,9.3-11.9,13.6-19.6,13.6c-3,0-6.2-0.6-9.3-2l2.9-9.3c2.3,0.7,4.3,1.2,6.2,1.2 c3.7,0,6.8-1.7,9.4-5.9l1-1.5l-25.3-47.4h12.6l18.8,37.3l19.3-37.3H627.1z\"/><path fill=\"#1D2C38\" d=\"M688.5,681c0,14-10.3,22.6-27,22.6h-14.3v18.3h-11.8v-63.5h26.1C678.1,658.4,688.5,666.9,688.5,681z M676.6,681c0-8-5.4-12.6-15.7-12.6h-13.8v25.2h13.8C671.2,693.6,676.6,688.9,676.6,681z\"/><path fill=\"#1D2C38\" d=\"M695.7,690.1c0-18.8,14.5-32.7,34.2-32.7c19.7,0,34.2,13.8,34.2,32.7s-14.5,32.7-34.2,32.7 C710.2,722.8,695.7,708.9,695.7,690.1z M752.3,690.1c0-13-9.5-22.3-22.3-22.3c-12.8,0-22.3,9.4-22.3,22.3c0,13,9.5,22.3,22.3,22.3 C742.7,712.5,752.3,703.1,752.3,690.1z\"/><path fill=\"#1D2C38\" d=\"M831.5,704.3c0,11-8.3,17.6-24.1,17.6h-30.1v-63.5h28.4c14.2,0,22.7,5.8,22.7,16.3c0,6.8-3.4,11.6-9.3,14.2 C827.1,691,831.5,696.3,831.5,704.3z M788.9,685.5h15.8c7.6,0,11.7-3.1,11.7-9c0-6-4.1-9.1-11.7-9.1h-15.8V685.5z M819.6,703.4 c0-6.4-4.4-9.3-12.5-9.3h-18.2v18.7h18.2C815.3,712.8,819.6,709.7,819.6,703.4z\"/><path fill=\"#1D2C38\" d=\"M892.6,712v9.9h-47.7v-63.5h46.4v9.9h-34.6v16.5h30.7v9.7h-30.7V712H892.6z\"/><path fill=\"#1D2C38\" d=\"M962.2,658.4v63.5h-11.8v-27.2h-32.9v27.2h-11.8v-63.5h11.8v26.2h32.9v-26.2H962.2z\"/><path fill=\"#1D2C38\" d=\"M1033,700.2c0,14.3-9.5,21.7-25.6,21.7h-27.3v-63.5h11.6v21.5h17.6C1024.5,679.9,1033,686.7,1033,700.2z M1021.2,700.4c0-8-5.2-11.5-14.3-11.5h-15.2v24h15.2C1015.9,712.8,1021.2,708.5,1021.2,700.4z\"/><path fill=\"#1D2C38\" d=\"M247.7,806.8v23.5h-4.4v-10.1h-12.2v10.1h-4.4v-23.5h4.4v9.7h12.2v-9.7H247.7z\"/></g></svg>", "mark": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"358 249 364 311\"><rect fill=\"#FFC81A\" x=\"358.5\" y=\"249.3\" width=\"109.8\" height=\"309.3\"/><path fill=\"#1D2C38\" d=\"M479.5,249.3l0,174.3h0v4.7h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4 l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4h2.1h2.8l0-205.1l-78.7,0v68.4h-15.5v-88.2l109.7,0l0,224.9h4.9l0-231.2l-119.5,0 v94.5h-15.5V307.8h150.5l0,251h4.9l0-257.3H520.3v120.6h-15.5V281.7l191.3,0v277.1h4.9V275.4l-201.1,0v146.7h-15.5l0-166.4 l232.1,0v303.1h4.9V249.3L479.5,249.3z M566.1,360l68.9,0l0,62.1h-68.9V360z\"/></svg>"}, "contacts": {"name": "Павел", "phone": "8 938 523-44-37", "whatsapp": "8 938 523-44-37"}, "team": {"photo": "media/team.jpg", "caption": "Команда «Высокий уровень»"}, "video": {"src": "media/objects.mp4", "poster": "media/objects.jpg", "caption": "Видео с наших объектов"}, "photos": [{"src": "media/p/c22_066.jpg", "cap": "Парящий потолок с подсветкой и треком на кухне", "tags": ["float", "led", "track", "matte"], "score": 12}, {"src": "media/p/c07_031.jpg", "cap": "Двухуровневый потолок с подсветкой в гостиной", "tags": ["two-level", "led", "spot", "matte"], "score": 11}, {"src": "media/p/c30_014.jpg", "cap": "Теневой профиль у колонн и точечные светильники", "tags": ["shadow", "spot", "matte"], "score": 10}, {"src": "media/p/c13_077.jpg", "cap": "Магнитный трек и световые линии на кухне", "tags": ["track", "line", "spot", "matte"], "score": 10}, {"src": "media/p/c22_032.jpg", "cap": "Парящий контур и световые линии в прихожей", "tags": ["float", "line", "led", "gloss"], "score": 10}, {"src": "media/p/c26_004.jpg", "cap": "Сетка световых линий над лестничным холлом", "tags": ["line", "matte"], "score": 10}, {"src": "media/p/c28_001.jpg", "cap": "Световые линии и подсветка ниши штор в гостиной", "tags": ["line", "cornice", "led", "matte"], "score": 10}, {"src": "media/p/c04_005.jpg", "cap": "Встроенный трек с линейным светом в спальне", "tags": ["track", "line", "matte"], "score": 10}, {"src": "media/p/c22_082.jpg", "cap": "Парящий потолок и линейные светильники на треке", "tags": ["float", "line", "track", "led"], "score": 9}, {"src": "media/p/c26_013.jpg", "cap": "Световые линии переходят на реечную стену", "tags": ["line", "matte"], "score": 9}, {"src": "media/p/c03_037.jpg", "cap": "Подсветка у потолка и трековый свет", "tags": ["led", "float", "track"], "score": 9}, {"src": "media/p/c15_001.jpg", "cap": "Встроенный трек и световые линии в прихожей", "tags": ["matte", "shadow", "track", "line"], "score": 9}, {"src": "media/p/c13_028.jpg", "cap": "Контур из магнитного трека в гостиной", "tags": ["track", "line", "led", "float", "matte"], "score": 8}, {"src": "media/p/c28_011.jpg", "cap": "Световые линии в гостиной-кухне вечером", "tags": ["line", "matte"], "score": 8}, {"src": "media/p/c30_027.jpg", "cap": "Теневой профиль в углу с отделкой под камень", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c30_019.jpg", "cap": "Теневой зазор вокруг каменной колонны", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c30_017.jpg", "cap": "Теневой профиль и разделительный стык полотен", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c19_002.jpg", "cap": "Теневой профиль и накладные светильники над лестницей", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c13_005.jpg", "cap": "Магнитные треки и контурная подсветка на кухне", "tags": ["track", "line", "spot", "float", "led", "matte"], "score": 7}, {"src": "media/p/c13_064.jpg", "cap": "Световые линии магнитного трека с поворотом", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c13_084.jpg", "cap": "Трек со споттами у стены с рейками", "tags": ["track", "spot", "matte"], "score": 7}, {"src": "media/p/c22_063.jpg", "cap": "Парящий потолок и трековый свет в спальне", "tags": ["float", "track", "led"], "score": 7}, {"src": "media/p/c22_028.jpg", "cap": "Парящий потолок с трековыми светильниками", "tags": ["float", "track", "led"], "score": 7}, {"src": "media/p/c22_045.jpg", "cap": "Парящий потолок и точечный свет в санузле", "tags": ["float", "spot"], "score": 7}, {"src": "media/p/c22_040.jpg", "cap": "Парящий потолок со светильниками в коридоре", "tags": ["float", "spot", "led"], "score": 7}, {"src": "media/p/c22_038.jpg", "cap": "Парящий потолок у стены с 3D-панелями", "tags": ["float", "spot", "led"], "score": 7}, {"src": "media/p/c22_058.jpg", "cap": "Парящий потолок с цветной подсветкой", "tags": ["float", "led"], "score": 7}, {"src": "media/p/c26_000.jpg", "cap": "Световые линии в ванной, отделка под мрамор", "tags": ["line", "led"], "score": 7}, {"src": "media/p/c27_015.jpg", "cap": "Контур из световых линий над кухней", "tags": ["line", "matte"], "score": 7}, {"src": "media/p/c27_041.jpg", "cap": "Световые линии в ванной с подсвеченным зеркалом", "tags": ["line"], "score": 7}, {"src": "media/p/c27_056.jpg", "cap": "Три параллельные световые линии в ванной", "tags": ["line", "shadow", "matte"], "score": 7}, {"src": "media/p/c27_011.jpg", "cap": "Световые линии над глянцевой кухней", "tags": ["line"], "score": 7}, {"src": "media/p/c26_021.jpg", "cap": "Линии с потолка переходят на стены у лестницы", "tags": ["line"], "score": 7}, {"src": "media/p/c27_045.jpg", "cap": "Линии с потолка продолжаются на стене", "tags": ["line"], "score": 7}, {"src": "media/p/c09_005.jpg", "cap": "Засвет по периметру рядом с мансардным окном", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c28_010.jpg", "cap": "Прямоугольник из световых линий в комнате", "tags": ["line", "matte"], "score": 7}, {"src": "media/p/c07_007.jpg", "cap": "Двухуровневый потолок с подсветкой и споты", "tags": ["two-level", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c09_016.jpg", "cap": "Засвет по периметру в ванной с тёмной плиткой", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c09_008.jpg", "cap": "Засвет по периметру в ванной с мрамором", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c04_033.jpg", "cap": "Встроенный трек со светом в коридоре", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c04_021.jpg", "cap": "Треки и парящая подсветка по контуру в холле", "tags": ["track", "float", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c04_004.jpg", "cap": "Встроенный трек с линейным светом в гостиной", "tags": ["track", "line", "matte", "chandelier"], "score": 7}, {"src": "media/p/c04_003.jpg", "cap": "Встроенный трек над кухней-гостиной", "tags": ["track", "chandelier", "matte"], "score": 7}, {"src": "media/p/c16_022.jpg", "cap": "Накладные треки и тёплая подсветка у стены", "tags": ["track", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c16_023.jpg", "cap": "Накладной трек с линейными светильниками", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c03_054.jpg", "cap": "Карниз с подсветкой и линейные светильники", "tags": ["cornice", "led", "float", "line", "track"], "score": 7}, {"src": "media/p/c03_059.jpg", "cap": "Карниз с подсветкой и световые линии", "tags": ["cornice", "led", "line"], "score": 7}, {"src": "media/p/c03_008.jpg", "cap": "Встроенный карниз и контурная подсветка", "tags": ["cornice", "float", "led"], "score": 7}, {"src": "media/p/c15_006.jpg", "cap": "Теневой профиль и трековые светильники в холле", "tags": ["matte", "shadow", "track", "spot"], "score": 7}, {"src": "media/p/c15_003.jpg", "cap": "Накладные светильники и подсветка кладки в холле", "tags": ["matte", "led", "shadow"], "score": 7}, {"src": "media/p/c15_014.jpg", "cap": "Точечные светильники в матовом потолке", "tags": ["matte", "spot"], "score": 7}, {"src": "media/p/c20_006.jpg", "cap": "Встроенные ниши с точечными светильниками", "tags": ["spot", "matte"], "score": 7}, {"src": "media/p/c30_034.jpg", "cap": "Теневой профиль на примыкании к мрамору", "tags": ["shadow", "matte"], "score": 6}, {"src": "media/p/c30_016.jpg", "cap": "Теневой профиль и светильники среди мрамора", "tags": ["shadow", "spot", "matte"], "score": 6}, {"src": "media/p/c19_003.jpg", "cap": "Потолочный остров с чёрным профилем и треками", "tags": ["shadow", "track", "spot", "matte"], "score": 6}, {"src": "media/p/c19_007.jpg", "cap": "Скруглённый теневой профиль и круглая ниша", "tags": ["shadow", "track", "matte"], "score": 6}, {"src": "media/p/c19_009.jpg", "cap": "Фактурное полотно и чёрный теневой профиль", "tags": ["shadow", "matte"], "score": 6}, {"src": "media/p/c03_046.jpg", "cap": "Встроенный карниз и точечный свет в ванной", "tags": ["cornice", "spot"], "score": 6}, {"src": "media/p/c03_020.jpg", "cap": "Радиусный встроенный карниз вдоль эркера", "tags": ["cornice"], "score": 6}, {"src": "media/p/c03_060.jpg", "cap": "Встроенный карниз у панорамных окон", "tags": ["cornice", "shadow"], "score": 6}, {"src": "media/p/c21_000.jpg", "cap": "Ниша под шторы с подсветкой", "tags": ["cornice", "led"], "score": 6}, {"src": "media/p/c34_002.jpg", "cap": "Электрокарниз в нише у панорамного окна", "tags": ["cornice"], "score": 6}, {"src": "media/p/c25_000.jpg", "cap": "Сатиновый потолок с точечными светильниками", "tags": ["satin", "spot", "cornice"], "score": 6}, {"src": "media/p/c01_004.jpg", "cap": "Люстра на белом натяжном потолке", "tags": ["chandelier", "matte"], "score": 7}]};
+var DEMO_PROFILE = {"company": {"name": "Высокий уровень", "city": "Новороссийск", "what": "натяжные потолки", "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1900 310\" role=\"img\" aria-label=\"Высокий уровень\"><g transform=\"translate(-358.5,-249.3)\"><rect fill=\"#FFC81A\" x=\"358.5\" y=\"249.3\" width=\"109.8\" height=\"309.3\"/><path fill=\"#1D2C38\" d=\"M479.5,249.3l0,174.3h0v4.7h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4 l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4h2.1h2.8l0-205.1l-78.7,0v68.4h-15.5v-88.2l109.7,0l0,224.9h4.9l0-231.2l-119.5,0 v94.5h-15.5V307.8h150.5l0,251h4.9l0-257.3H520.3v120.6h-15.5V281.7l191.3,0v277.1h4.9V275.4l-201.1,0v146.7h-15.5l0-166.4 l232.1,0v303.1h4.9V249.3L479.5,249.3z M566.1,360l68.9,0l0,62.1h-68.9V360z\"/></g><g transform=\"translate(442,93.0) scale(1.4762) translate(-47,-639)\"><path fill=\"#FFC81A\" d=\"M106.8,703.5c0,11.3-9.3,18.4-25.9,18.4H47v-63.5h32.2c15.7,0,24.8,6.1,24.8,16.6c0,6.1-3,10.8-8.2,13.6 C102.8,691.1,106.8,696.1,106.8,703.5z M68.1,682.8h9.1c3.6,0,5.3-1.5,5.3-4.6c0-3.1-1.6-4.8-5.3-4.8h-9.1V682.8z M85.2,701.8 c0-3.3-1.7-4.9-5.3-4.9H68.1v10h11.9C83.5,706.9,85.2,705.1,85.2,701.8z\"/><path fill=\"#FFC81A\" d=\"M173.4,698.8c0,15.2-10.7,23.1-27.5,23.1h-31.5v-63.5h21.1v19.5h13.2C164.2,677.9,173.4,684.8,173.4,698.8z M151.9,699.2c0-4.8-3.2-6.4-7.4-6.4h-9v14.1h9C148.7,706.9,151.9,704.1,151.9,699.2z M179.3,658.4h21.1v63.5h-21.1V658.4z\"/><path fill=\"#FFC81A\" d=\"M208.1,690.1c0-19.5,15-33.2,35.4-33.2c12.4,0,22.2,4.5,28.5,12.7l-13.5,12.1c-3.7-4.7-8.2-7.4-13.9-7.4 c-8.9,0-14.9,6.2-14.9,15.9c0,9.7,6,15.9,14.9,15.9c5.7,0,10.2-2.7,13.9-7.4l13.5,12.1c-6.3,8.2-16.1,12.7-28.5,12.7 C223.1,723.3,208.1,709.6,208.1,690.1z\"/><path fill=\"#FFC81A\" d=\"M273.6,690.1c0-19.2,15.2-33.2,35.9-33.2s35.9,14,35.9,33.2c0,19.2-15.2,33.2-35.9,33.2 S273.6,709.4,273.6,690.1z M323.7,690.1c0-9.9-6.4-15.9-14.3-15.9c-7.9,0-14.3,6-14.3,15.9s6.4,15.9,14.3,15.9 C317.3,706,323.7,700,323.7,690.1z\"/><path fill=\"#FFC81A\" d=\"M397.4,689.2l18.8,32.7H392l-12.2-23h-6v23h-21.4v-63.5h21.4V682h6.5l13.5-23.7h22.3L397.4,689.2z\"/><path fill=\"#FFC81A\" d=\"M420.6,658.4h21.1v33l21.9-33h20.2v63.5h-21.1v-33l-21.8,33h-20.2V658.4z\"/><path fill=\"#FFC81A\" d=\"M494.9,658.4H516v33l21.9-33H558v63.5H537v-33l-21.8,33h-20.2V658.4z M506.6,639.1h14.3c0,4,1.4,5.8,5.5,5.8 c4.2,0,5.7-1.8,5.7-5.8h14.3c0,10.1-5.5,15.6-20,15.6C512,654.7,506.6,649.2,506.6,639.1z\"/><path fill=\"#1D2C38\" d=\"M627.1,658.4l-27.6,51.3c-4.9,9.3-11.9,13.6-19.6,13.6c-3,0-6.2-0.6-9.3-2l2.9-9.3c2.3,0.7,4.3,1.2,6.2,1.2 c3.7,0,6.8-1.7,9.4-5.9l1-1.5l-25.3-47.4h12.6l18.8,37.3l19.3-37.3H627.1z\"/><path fill=\"#1D2C38\" d=\"M688.5,681c0,14-10.3,22.6-27,22.6h-14.3v18.3h-11.8v-63.5h26.1C678.1,658.4,688.5,666.9,688.5,681z M676.6,681c0-8-5.4-12.6-15.7-12.6h-13.8v25.2h13.8C671.2,693.6,676.6,688.9,676.6,681z\"/><path fill=\"#1D2C38\" d=\"M695.7,690.1c0-18.8,14.5-32.7,34.2-32.7c19.7,0,34.2,13.8,34.2,32.7s-14.5,32.7-34.2,32.7 C710.2,722.8,695.7,708.9,695.7,690.1z M752.3,690.1c0-13-9.5-22.3-22.3-22.3c-12.8,0-22.3,9.4-22.3,22.3c0,13,9.5,22.3,22.3,22.3 C742.7,712.5,752.3,703.1,752.3,690.1z\"/><path fill=\"#1D2C38\" d=\"M831.5,704.3c0,11-8.3,17.6-24.1,17.6h-30.1v-63.5h28.4c14.2,0,22.7,5.8,22.7,16.3c0,6.8-3.4,11.6-9.3,14.2 C827.1,691,831.5,696.3,831.5,704.3z M788.9,685.5h15.8c7.6,0,11.7-3.1,11.7-9c0-6-4.1-9.1-11.7-9.1h-15.8V685.5z M819.6,703.4 c0-6.4-4.4-9.3-12.5-9.3h-18.2v18.7h18.2C815.3,712.8,819.6,709.7,819.6,703.4z\"/><path fill=\"#1D2C38\" d=\"M892.6,712v9.9h-47.7v-63.5h46.4v9.9h-34.6v16.5h30.7v9.7h-30.7V712H892.6z\"/><path fill=\"#1D2C38\" d=\"M962.2,658.4v63.5h-11.8v-27.2h-32.9v27.2h-11.8v-63.5h11.8v26.2h32.9v-26.2H962.2z\"/><path fill=\"#1D2C38\" d=\"M1033,700.2c0,14.3-9.5,21.7-25.6,21.7h-27.3v-63.5h11.6v21.5h17.6C1024.5,679.9,1033,686.7,1033,700.2z M1021.2,700.4c0-8-5.2-11.5-14.3-11.5h-15.2v24h15.2C1015.9,712.8,1021.2,708.5,1021.2,700.4z\"/><path fill=\"#1D2C38\" d=\"M247.7,806.8v23.5h-4.4v-10.1h-12.2v10.1h-4.4v-23.5h4.4v9.7h12.2v-9.7H247.7z\"/></g></svg>", "mark": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"358 249 364 311\"><rect fill=\"#FFC81A\" x=\"358.5\" y=\"249.3\" width=\"109.8\" height=\"309.3\"/><path fill=\"#1D2C38\" d=\"M479.5,249.3l0,174.3h0v4.7h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4 l0,19.8H479.5v6.3h155.4l0,19.8H479.5v6.3h155.4h2.1h2.8l0-205.1l-78.7,0v68.4h-15.5v-88.2l109.7,0l0,224.9h4.9l0-231.2l-119.5,0 v94.5h-15.5V307.8h150.5l0,251h4.9l0-257.3H520.3v120.6h-15.5V281.7l191.3,0v277.1h4.9V275.4l-201.1,0v146.7h-15.5l0-166.4 l232.1,0v303.1h4.9V249.3L479.5,249.3z M566.1,360l68.9,0l0,62.1h-68.9V360z\"/></svg>"}, "contacts": {"name": "Павел", "phone": "8 938 523-44-37", "max": "8 938 523-44-37"}, "team": {"photo": "media/team.jpg", "caption": "Команда «Высокий уровень»"}, "video": {"src": "media/objects.mp4", "poster": "media/objects.jpg", "caption": "Видео с наших объектов"}, "photos": [{"src": "media/p/c22_066.jpg", "cap": "Парящий потолок с подсветкой и треком на кухне", "tags": ["float", "led", "track", "matte"], "score": 12}, {"src": "media/p/c07_031.jpg", "cap": "Двухуровневый потолок с подсветкой в гостиной", "tags": ["two-level", "led", "spot", "matte"], "score": 11}, {"src": "media/p/c30_014.jpg", "cap": "Теневой профиль у колонн и точечные светильники", "tags": ["shadow", "spot", "matte"], "score": 10}, {"src": "media/p/c13_077.jpg", "cap": "Магнитный трек и световые линии на кухне", "tags": ["track", "line", "spot", "matte"], "score": 10}, {"src": "media/p/c22_032.jpg", "cap": "Парящий контур и световые линии в прихожей", "tags": ["float", "line", "led", "gloss"], "score": 10}, {"src": "media/p/c26_004.jpg", "cap": "Сетка световых линий над лестничным холлом", "tags": ["line", "matte"], "score": 10}, {"src": "media/p/c28_001.jpg", "cap": "Световые линии и подсветка ниши штор в гостиной", "tags": ["line", "cornice", "led", "matte"], "score": 10}, {"src": "media/p/c04_005.jpg", "cap": "Встроенный трек с линейным светом в спальне", "tags": ["track", "line", "matte"], "score": 10}, {"src": "media/p/c22_082.jpg", "cap": "Парящий потолок и линейные светильники на треке", "tags": ["float", "line", "track", "led"], "score": 9}, {"src": "media/p/c26_013.jpg", "cap": "Световые линии переходят на реечную стену", "tags": ["line", "matte"], "score": 9}, {"src": "media/p/c03_037.jpg", "cap": "Подсветка у потолка и трековый свет", "tags": ["led", "float", "track"], "score": 9}, {"src": "media/p/c15_001.jpg", "cap": "Встроенный трек и световые линии в прихожей", "tags": ["matte", "shadow", "track", "line"], "score": 9}, {"src": "media/p/c13_028.jpg", "cap": "Контур из магнитного трека в гостиной", "tags": ["track", "line", "led", "float", "matte"], "score": 8}, {"src": "media/p/c28_011.jpg", "cap": "Световые линии в гостиной-кухне вечером", "tags": ["line", "matte"], "score": 8}, {"src": "media/p/c30_027.jpg", "cap": "Теневой профиль в углу с отделкой под камень", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c30_019.jpg", "cap": "Теневой зазор вокруг каменной колонны", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c30_017.jpg", "cap": "Теневой профиль и разделительный стык полотен", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c19_002.jpg", "cap": "Теневой профиль и накладные светильники над лестницей", "tags": ["shadow", "matte"], "score": 7}, {"src": "media/p/c13_005.jpg", "cap": "Магнитные треки и контурная подсветка на кухне", "tags": ["track", "line", "spot", "float", "led", "matte"], "score": 7}, {"src": "media/p/c13_064.jpg", "cap": "Световые линии магнитного трека с поворотом", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c13_084.jpg", "cap": "Трек со споттами у стены с рейками", "tags": ["track", "spot", "matte"], "score": 7}, {"src": "media/p/c22_063.jpg", "cap": "Парящий потолок и трековый свет в спальне", "tags": ["float", "track", "led"], "score": 7}, {"src": "media/p/c22_028.jpg", "cap": "Парящий потолок с трековыми светильниками", "tags": ["float", "track", "led"], "score": 7}, {"src": "media/p/c22_045.jpg", "cap": "Парящий потолок и точечный свет в санузле", "tags": ["float", "spot"], "score": 7}, {"src": "media/p/c22_040.jpg", "cap": "Парящий потолок со светильниками в коридоре", "tags": ["float", "spot", "led"], "score": 7}, {"src": "media/p/c22_038.jpg", "cap": "Парящий потолок у стены с 3D-панелями", "tags": ["float", "spot", "led"], "score": 7}, {"src": "media/p/c22_058.jpg", "cap": "Парящий потолок с цветной подсветкой", "tags": ["float", "led"], "score": 7}, {"src": "media/p/c26_000.jpg", "cap": "Световые линии в ванной, отделка под мрамор", "tags": ["line", "led"], "score": 7}, {"src": "media/p/c27_015.jpg", "cap": "Контур из световых линий над кухней", "tags": ["line", "matte"], "score": 7}, {"src": "media/p/c27_041.jpg", "cap": "Световые линии в ванной с подсвеченным зеркалом", "tags": ["line"], "score": 7}, {"src": "media/p/c27_056.jpg", "cap": "Три параллельные световые линии в ванной", "tags": ["line", "shadow", "matte"], "score": 7}, {"src": "media/p/c27_011.jpg", "cap": "Световые линии над глянцевой кухней", "tags": ["line"], "score": 7}, {"src": "media/p/c26_021.jpg", "cap": "Линии с потолка переходят на стены у лестницы", "tags": ["line"], "score": 7}, {"src": "media/p/c27_045.jpg", "cap": "Линии с потолка продолжаются на стене", "tags": ["line"], "score": 7}, {"src": "media/p/c09_005.jpg", "cap": "Засвет по периметру рядом с мансардным окном", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c28_010.jpg", "cap": "Прямоугольник из световых линий в комнате", "tags": ["line", "matte"], "score": 7}, {"src": "media/p/c07_007.jpg", "cap": "Двухуровневый потолок с подсветкой и споты", "tags": ["two-level", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c09_016.jpg", "cap": "Засвет по периметру в ванной с тёмной плиткой", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c09_008.jpg", "cap": "Засвет по периметру в ванной с мрамором", "tags": ["led", "matte"], "score": 7}, {"src": "media/p/c04_033.jpg", "cap": "Встроенный трек со светом в коридоре", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c04_021.jpg", "cap": "Треки и парящая подсветка по контуру в холле", "tags": ["track", "float", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c04_004.jpg", "cap": "Встроенный трек с линейным светом в гостиной", "tags": ["track", "line", "matte", "chandelier"], "score": 7}, {"src": "media/p/c04_003.jpg", "cap": "Встроенный трек над кухней-гостиной", "tags": ["track", "chandelier", "matte"], "score": 7}, {"src": "media/p/c16_022.jpg", "cap": "Накладные треки и тёплая подсветка у стены", "tags": ["track", "led", "spot", "matte"], "score": 7}, {"src": "media/p/c16_023.jpg", "cap": "Накладной трек с линейными светильниками", "tags": ["track", "line", "matte"], "score": 7}, {"src": "media/p/c03_054.jpg", "cap": "Карниз с подсветкой и линейные светильники", "tags": ["cornice", "led", "float", "line", "track"], "score": 7}, {"src": "media/p/c03_059.jpg", "cap": "Карниз с подсветкой и световые линии", "tags": ["cornice", "led", "line"], "score": 7}, {"src": "media/p/c03_008.jpg", "cap": "Встроенный карниз и контурная подсветка", "tags": ["cornice", "float", "led"], "score": 7}, {"src": "media/p/c15_006.jpg", "cap": "Теневой профиль и трековые светильники в холле", "tags": ["matte", "shadow", "track", "spot"], "score": 7}, {"src": "media/p/c15_003.jpg", "cap": "Накладные светильники и подсветка кладки в холле", "tags": ["matte", "led", "shadow"], "score": 7}, {"src": "media/p/c15_014.jpg", "cap": "Точечные светильники в матовом потолке", "tags": ["matte", "spot"], "score": 7}, {"src": "media/p/c20_006.jpg", "cap": "Встроенные ниши с точечными светильниками", "tags": ["spot", "matte"], "score": 7}, {"src": "media/p/c30_034.jpg", "cap": "Теневой профиль на примыкании к мрамору", "tags": ["shadow", "matte"], "score": 6}, {"src": "media/p/c30_016.jpg", "cap": "Теневой профиль и светильники среди мрамора", "tags": ["shadow", "spot", "matte"], "score": 6}, {"src": "media/p/c19_003.jpg", "cap": "Потолочный остров с чёрным профилем и треками", "tags": ["shadow", "track", "spot", "matte"], "score": 6}, {"src": "media/p/c19_007.jpg", "cap": "Скруглённый теневой профиль и круглая ниша", "tags": ["shadow", "track", "matte"], "score": 6}, {"src": "media/p/c19_009.jpg", "cap": "Фактурное полотно и чёрный теневой профиль", "tags": ["shadow", "matte"], "score": 6}, {"src": "media/p/c03_046.jpg", "cap": "Встроенный карниз и точечный свет в ванной", "tags": ["cornice", "spot"], "score": 6}, {"src": "media/p/c03_020.jpg", "cap": "Радиусный встроенный карниз вдоль эркера", "tags": ["cornice"], "score": 6}, {"src": "media/p/c03_060.jpg", "cap": "Встроенный карниз у панорамных окон", "tags": ["cornice", "shadow"], "score": 6}, {"src": "media/p/c21_000.jpg", "cap": "Ниша под шторы с подсветкой", "tags": ["cornice", "led"], "score": 6}, {"src": "media/p/c34_002.jpg", "cap": "Электрокарниз в нише у панорамного окна", "tags": ["cornice"], "score": 6}, {"src": "media/p/c25_000.jpg", "cap": "Сатиновый потолок с точечными светильниками", "tags": ["satin", "spot", "cornice"], "score": 6}, {"src": "media/p/c01_004.jpg", "cap": "Люстра на белом натяжном потолке", "tags": ["chandelier", "matte"], "score": 7}]};
 
 (function(){
 "use strict";
@@ -553,24 +564,58 @@ var ROLE_DESC = {
 };
 
 /* ============ 2. ДАННЫЕ ============ */
-var CFG = window.KP_CONFIG || null;
-var DATA, ITEMS, ROOMS, cur = 0, vi = 0;
+var CFG = window.KP_CONFIG && typeof window.KP_CONFIG === 'object' ? window.KP_CONFIG : null;
+var DATA, ITEMS = [], ROOMS = [], cur = 0, vi = 0, EMPTY = false;
 function plural(n, a, b, c){ var m = Math.abs(n) % 100, k = m % 10; return n + ' ' + (m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c); }
 function money(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; }
+/* цена за единицу может прийти с копейками — показываем их, итоги — в рублях */
+function moneyP(n){ var k = Math.round(n * 100); if(k % 100 === 0) return money(k / 100);
+  var a = Math.abs(k), c = a % 100; return (k < 0 ? '−' : '') + Math.floor(a / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + (c < 10 ? '0' : '') + c + ' ₽'; }
 function fq2(n){ return (Math.round(n * 100) / 100).toString().replace('.', ','); }
-function unitLabel(u){ return u === 'м2' ? 'м²' : u === 'м.п' ? 'м' : u; }
+/* единицы из Excel и из каталога OpMax: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция */
+function normUnit(u){
+  var s = String(u == null ? '' : u).trim(), l = s.toLowerCase().replace(/\s+/g, '');
+  if(/^(м2|м²|кв\.?м\.?)$/.test(l)) return 'м²';
+  if(/^(м\.?п\.?|пог\.?м\.?|м)$/.test(l)) return 'м';
+  if(/^шт\.?$/.test(l)) return 'шт';
+  return s;
+}
+function unitLabel(u){ return normUnit(u); }
+function numOf(v){ var n = typeof v === 'number' ? v : parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : 0; }
+/* смета на входе (KP_CONFIG или демо): чистим один раз, дальше код работает только с нормальными позициями */
+function normItems(list){
+  return (Array.isArray(list) ? list : []).filter(function(it){ return it && typeof it === 'object'; }).map(function(it){
+    var q = {};
+    if(it.qty && typeof it.qty === 'object'){ for(var k in it.qty) if(Object.prototype.hasOwnProperty.call(it.qty, k)) q[String(k)] = Math.max(0, numOf(it.qty[k])); }
+    else q['Общая'] = Math.max(0, numOf(it.qty));
+    if(!Object.keys(q).length) q['Общая'] = 0;
+    return { name:String(it.name == null ? '' : it.name).trim() || 'Позиция', unit:normUnit(it.unit), price:numOf(it.price), q:q, optional:it.optional === true };
+  });
+}
+function normEstimate(cfg){
+  var vars = (Array.isArray(cfg.variants) ? cfg.variants : []).filter(function(v){ return v && Array.isArray(v.items) && v.items.length; })
+    .map(function(v, k){ return { title:String(v.title || 'Вариант ' + (k + 1)), note:String(v.note || ''), items:normItems(v.items) }; });
+  return vars.length ? { variants:vars, items:null } : { variants:null, items:normItems(cfg.items) };
+}
+/* даты — только те, что пришли: ISO из OpMax (срок — момент времени, показываем по часам клиента) или dd.mm.yyyy */
+function fmtDate(v){
+  if(v == null || v === '') return '';
+  var s = String(v).trim(), m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(/^\d{2}\.\d{2}\.\d{4}$/.test(s)) return s;
+  if(m) return m[3] + '.' + m[2] + '.' + m[1];
+  var d = new Date(s); if(isNaN(d.getTime())) return '';
+  return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear();
+}
+function kpLabel(){ return DATA && DATA.num ? 'КП № ' + DATA.num : 'КП'; }
 
-function itemsOf(cfg, k){ return cfg.variants ? cfg.variants[k].items : cfg.items; }
-function load(cfg){
-  DATA = cfg;
+function itemsOf(k){ return DATA.variants ? DATA.variants[Math.min(k, DATA.variants.length - 1)].items : (DATA.items || []); }
+function load(){
   var roomSet = [];
-  ITEMS = itemsOf(cfg, vi).map(function(it, i){
+  ITEMS = itemsOf(vi).map(function(it, i){
     var c = classify(it.name), q = {};
-    if(typeof it.qty === 'number') q['Общая'] = it.qty;
-    else for(var k in it.qty){ q[k] = it.qty[k]; }
-    for(var k2 in q) if(roomSet.indexOf(k2) < 0) roomSet.push(k2);
-    return { i:i, name:it.name, unit:it.unit, price:it.price, q:q, q0:JSON.stringify(q), on:true, cat:c.cat, role:c.role, brand:c.brand, width:c.width,
-             isCount: it.unit === 'шт' };
+    for(var k in it.q){ q[k] = it.q[k]; if(roomSet.indexOf(k) < 0) roomSet.push(k); }
+    return { i:i, name:it.name, unit:it.unit, price:it.price, q:q, q0:JSON.stringify(q), on:!it.optional, on0:!it.optional, opt:it.optional,
+             cat:c.cat, role:c.role, brand:c.brand, width:c.width, isCount: it.unit === 'шт' };
   });
   ROOMS = roomSet.map(function(nm){ return { n:nm, on:true }; });
   ROOMS.forEach(function(r){
@@ -663,8 +708,8 @@ function buildCut(){
   if(hasCorn) s += '<circle cx="' + (xR - 2) + '" cy="' + yS + '" r="4" fill="' + INK + '"/>';
 
   /* выноски слева: профиль, полотно */
-  s += num(30, yS + 60) + lead(30, yS + 50, 30, yS + 18); legend(prof || { name:'Профиль по периметру', price:0, unit:'м.п' }, F.system === 'standard' && mold ? 'со вставкой' : null);
-  var xCanvasTag = 150; s += num(xCanvasTag, yS + 60) + lead(xCanvasTag, yS + 50, xCanvasTag, yS + 4); legend(canvas || { name:'Полотно', price:0, unit:'м2' }, seamC ? 'бесщелевая кромка ' + money(seamC.price) + '/м²' : null);
+  s += num(30, yS + 60) + lead(30, yS + 50, 30, yS + 18); legend(prof || { name:'Профиль по периметру', price:0, unit:'м' }, F.system === 'standard' && mold ? 'со вставкой' : null);
+  var xCanvasTag = 150; s += num(xCanvasTag, yS + 60) + lead(xCanvasTag, yS + 50, xCanvasTag, yS + 4); legend(canvas || { name:'Полотно', price:0, unit:'м²' }, seamC ? 'бесщелевая кромка ' + moneyP(seamC.price) + '/м²' : null);
 
   /* свет: раскладываем по доступной ширине */
   var lights = []; if(spot) lights.push('spot'); if(line) lights.push('line'); if(track) lights.push('track'); if(chand) lights.push('chand');
@@ -704,22 +749,27 @@ function buildCut(){
   s += '<text x="' + (xCanvasTag + 66) + '" y="' + ((slabH + yS) / 2 + 4) + '" font-size="11" font-family="inherit" fill="' + BLUE + '">' + drop + '</text>';
   cutSvg.innerHTML = s;
   leg.innerHTML = L.map(function(e){ var it = e.it;
-    return '<span><i>' + e.k + '</i><b>' + esc(shortName(it)) + '</b><em>' + (it.price ? money(it.price) + '/' + unitLabel(it.unit) : '') + (e.extra ? ' · ' + esc(e.extra) : '') + '</em></span>'; }).join('');
+    return '<span><i>' + e.k + '</i><b>' + esc(shortName(it)) + '</b><em>' + (it.price ? moneyP(it.price) + '/' + esc(unitLabel(it.unit)) : '') + (e.extra ? ' · ' + esc(e.extra) : '') + '</em></span>'; }).join('');
 }
 
 /* ============ 4. ФАКТУРА, ВАРИАНТЫ ============ */
 var clamp = function(v, a, b){ return Math.min(b, Math.max(a, v)); };
-window.setVar = function(k){ vi = k; track('package_select', { variant:DATA.variants[k].title }); var onMap = {}; ITEMS.forEach(function(it){ onMap[it.name] = it.on; });
-  load(DATA); ITEMS.forEach(function(it){ if(onMap[it.name] === false) it.on = false; }); renderAll(); };
+function setVar(k){
+  if(!DATA.variants || !DATA.variants[k]) return;
+  /* правки клиента (убрал/добавил позицию) переносим на тот же пункт другого варианта */
+  var chg = {}; ITEMS.forEach(function(it){ if(it.on !== it.on0) chg[it.name] = it.on; });
+  vi = k; track('package_select', { variant:DATA.variants[k].title });
+  load(); ITEMS.forEach(function(it){ if(Object.prototype.hasOwnProperty.call(chg, it.name)) it.on = chg[it.name]; }); renderAll(); }
+function variantTotal(v){ var g = 0; v.items.forEach(function(it){ if(it.optional) return; var q = 0; for(var r in it.q) q += it.q[r]; g += Math.round(it.price * q * 100) / 100; });
+  return Math.round(g - Math.round(g * (DATA.discount || 0) / 100)); }
 function renderVars(){
   var pan = document.getElementById('varsPan');
   if(!DATA.variants || DATA.variants.length < 2){ pan.style.display = 'none'; return; }
   pan.style.display = '';
-  var totals = DATA.variants.map(function(v, k){ var g = 0; v.items.forEach(function(it){ var q = typeof it.qty === 'number' ? it.qty : Object.keys(it.qty).reduce(function(s, r){ return s + it.qty[r]; }, 0); g += it.price * q; });
-    return Math.round(g - Math.round(g * (DATA.discount || 0) / 100)); });
+  var totals = DATA.variants.map(variantTotal);
   var min = Math.min.apply(null, totals);
   document.getElementById('vars').innerHTML = DATA.variants.map(function(v, k){
-    return '<button class="var' + (k === vi ? ' on' : '') + '" onclick="setVar(' + k + ')"><span class="vt"><b>' + esc(v.title) + '</b><small>' + esc(v.note || '') + '</small></span>'
+    return '<button type="button" class="var' + (k === vi ? ' on' : '') + '" data-act="setVar" data-arg="' + k + '" aria-pressed="' + (k === vi) + '"><span class="vt"><b>' + esc(v.title) + '</b><small>' + esc(v.note || '') + '</small></span>'
       + '<span class="vp2 num">' + money(totals[k]) + (totals[k] > min ? '<span class="vd">+' + money(totals[k] - min) + '</span>' : '<span class="vd">базовый</span>') + '</span></button>'; }).join('');
 }
 /* ============ 4б. КОМПАНИЯ, МЕНЕДЖЕР, ФОТО И ВИДЕО ============ */
@@ -737,7 +787,8 @@ function capOf(name){ var c = String(name || '').replace(/\.[a-z0-9]+$/i, '').re
 function fromMedia(media){
   var o = { photos:[], video:null, team:null, poster:null };
   (media || []).forEach(function(m){
-    var n = String(m.name || '').toLowerCase(), mime = m.mime || '';
+    if(!m || typeof m.url !== 'string') return;
+    var n = String(m.name || '').toLowerCase(), mime = String(m.mime || '');
     if(m.kind === 'video' || mime.indexOf('video/') === 0){ if(!o.video && (tagsOf(n).length || /объект|работ/.test(n))) o.video = { src:m.url }; return; }
     if(mime && mime.indexOf('image/') !== 0) return;
     if(/команд|team/.test(n)){ o.team = { photo:m.url, caption:'' }; return; }
@@ -750,14 +801,14 @@ function fromMedia(media){
   return o;
 }
 function profile(){
-  var c = CFG || {}, m = c.media && c.media.length ? fromMedia(c.media) : { photos:[] };
-  var ph = (c.photos || []).map(function(x){ return typeof x === 'string' ? { src:x, cap:'', tags:[], score:8 } : x; });
+  var c = CFG || {}, m = Array.isArray(c.media) && c.media.length ? fromMedia(c.media) : { photos:[] };
+  var ph = (Array.isArray(c.photos) ? c.photos : []).map(function(x){ return typeof x === 'string' ? { src:x, cap:'', tags:[], score:8 } : x; });
   /* разметку логотипа (<svg>) берём только из самого макета; из конфига — только ссылку на картинку */
   var cc = Object.assign({}, c.company); ['logo','mark'].forEach(function(k){ if(cc[k] && /^\s*</.test(cc[k])) delete cc[k]; });
   return {
     company: Object.assign({}, LAYOUT.company, cc),
     /* контакты личные: на платформе без подстановок, демо-контакты — только в демо */
-    contacts: c.contacts || (CFG ? {} : LAYOUT.contacts) || {},
+    contacts: CFG ? (CFG.demo === true ? {} : cleanContacts(CFG.contacts)) : cleanContacts(LAYOUT.contacts),
     team: c.team || m.team || LAYOUT.team || null,
     video: c.video || m.video || LAYOUT.video || null,
     /* свои фото этого КП — вперёд, библиотека компании — следом */
@@ -802,7 +853,7 @@ function renderPhotos(){
   var r = pickPhotos(P.photos, want, vid ? 4 : 6), html = '', grid = document.getElementById('photos');
   GAL = r.gallery;
   r.list.forEach(function(p, k){
-    html += '<button class="ph2" onclick="openLb(' + k + ')"><img src="' + esc(p.src) + '" alt="' + esc(p.cap || 'Объект') + '">' + (p.cap ? '<div class="cap">' + esc(p.cap) + '</div>' : '') + '</button>';
+    html += '<button type="button" class="ph2" data-act="openLb" data-arg="' + k + '"><img src="' + esc(p.src) + '" alt="' + esc(p.cap || 'Объект') + '">' + (p.cap ? '<div class="cap">' + esc(p.cap) + '</div>' : '') + '</button>';
   });
   if(!r.list.length && !vid) for(var i = 0; i < 3; i++) html += '<div class="ph2"><div class="pl">Фото объекта<br>загружается в OpMax</div></div>';
   /* плитку с видео строим один раз: правка сметы не должна перезапускать ролик и сбрасывать паузу */
@@ -811,7 +862,7 @@ function renderPhotos(){
     grid.querySelectorAll('.ph2').forEach(function(n){ n.parentNode.removeChild(n); }); grid.insertAdjacentHTML('beforeend', html);
   } else {
     grid.innerHTML = (vid ? '<div class="vcard' + (vid.poster ? ' hasposter' : '') + '" data-src="' + esc(vid.src) + '"><video id="objVid" muted loop playsinline preload="none"' + (vid.poster ? ' poster="' + esc(vid.poster) + '"' : '') + ' data-src="' + esc(vid.src) + '"></video>'
-      + '<button class="vbtn" id="vBtn" onclick="tglVid()" aria-label="Пауза">' + ICO_PAUSE + '</button><div class="cap">' + esc(vid.caption || 'Видео с наших объектов') + '</div></div>' : '') + html;
+      + '<button type="button" class="vbtn" id="vBtn" data-act="tglVid" aria-label="Пауза">' + ICO_PAUSE + '</button><div class="cap">' + esc(vid.caption || 'Видео с наших объектов') + '</div></div>' : '') + html;
     if(vid) setupVid();
   }
   var hit = r.hit.filter(function(t){ return TAG_RU[t]; }).slice(0, 4).map(function(t){ return TAG_RU[t]; });
@@ -831,16 +882,16 @@ function setupVid(){
     else if(!v.paused) v.pause(); }); }, { threshold:.25 });
   vio.observe(v);
 }
-window.tglVid = function(){ var v = document.getElementById('objVid'), b = document.getElementById('vBtn'); if(!v) return;
+function tglVid(){ var v = document.getElementById('objVid'), b = document.getElementById('vBtn'); if(!v) return;
   if(!v.src) v.src = v.dataset.src;
   if(v.paused){ v.dataset.user = ''; v.play().catch(function(){}); b.innerHTML = ICO_PAUSE; b.setAttribute('aria-label', 'Пауза'); }
-  else { v.dataset.user = '1'; v.pause(); b.innerHTML = ICO_PLAY; b.setAttribute('aria-label', 'Смотреть'); } };
+  else { v.dataset.user = '1'; v.pause(); b.innerHTML = ICO_PLAY; b.setAttribute('aria-label', 'Смотреть'); } }
 /* лайтбокс: стрелки, Esc, свайп */
 function showLb(){ var p = GAL[gi]; if(!p) return; document.getElementById('lbImg').src = p.src; document.getElementById('lbImg').alt = p.cap || '';
   document.getElementById('lbCap').innerHTML = esc(p.cap || '') + '<small>' + (gi + 1) + ' из ' + GAL.length + '</small>'; }
-window.openLb = function(k){ if(!GAL.length) return; gi = k; showLb(); document.getElementById('lb').hidden = false; document.body.style.overflow = 'hidden'; };
-window.closeLb = function(){ document.getElementById('lb').hidden = true; document.body.style.overflow = ''; };
-window.stepLb = function(d){ gi = (gi + d + GAL.length) % GAL.length; showLb(); };
+function openLb(k){ if(!GAL.length) return; gi = clamp(k, 0, GAL.length - 1); showLb(); document.getElementById('lb').hidden = false; document.body.style.overflow = 'hidden'; }
+function closeLb(){ document.getElementById('lb').hidden = true; document.body.style.overflow = ''; }
+function stepLb(d){ if(!GAL.length) return; gi = (gi + d + GAL.length) % GAL.length; showLb(); }
 document.addEventListener('keydown', function(e){ if(document.getElementById('lb').hidden) return;
   if(e.key === 'Escape') closeLb(); if(e.key === 'ArrowLeft') stepLb(-1); if(e.key === 'ArrowRight') stepLb(1); });
 /* PDF на платформе делается печатью страницы — перед печатью догружаем всё ленивое */
@@ -850,25 +901,49 @@ window.addEventListener('beforeprint', function(){ document.querySelectorAll('im
   lb.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive:true });
   lb.addEventListener('touchend', function(e){ if(x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 40) stepLb(dx < 0 ? 1 : -1); x0 = null; }); })();
 
-/* контакты менеджера: только заполненные каналы */
+/* контакты менеджера: только заполненные каналы — телефон, MAX, Telegram (WhatsApp не показываем) */
 function digits(s){ var d = String(s || '').replace(/\D/g, ''); if(d.length === 11 && d[0] === '8') d = '7' + d.slice(1); if(d.length === 10) d = '7' + d; return d; }
+function isPhone(s){ var t = String(s || '').trim(), n = t.replace(/\D/g, '').length; return /^\+?[\d\s().-]+$/.test(t) && n >= 10 && n <= 12; }
 var ICO = {
   phone:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>',
-  wa:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5a9.5 9.5 0 0 0-8.2 14.3L2.5 21.5l4.8-1.3A9.5 9.5 0 1 0 12 2.5zm5.3 13.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.9 0-1.4.7-2 1-2.3.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.6 2.1 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.3z"/></svg>',
   tg:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M20.7 4.3 2.9 11.2c-1.2.5-1.2 1.2-.2 1.5l4.5 1.4 1.7 5.3c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l3-14.3c.3-1.3-.5-1.8-1.3-1.6zM8.9 13.9l9-5.7c.4-.3.8-.1.5.2l-7.7 7-.3 3.2-1.5-4.7z"/></svg>'
+  /* MAX — без логотипа: официальный знак не подделываем, на тёмной плитке просто «M» */
 };
 /* номер — в одном виде, как бы менеджер его ни ввёл: 8 938 523-44-37 */
 function phoneText(p){ var d = digits(p); return d.length === 11 && d[0] === '7' ? '8 ' + d.slice(1, 4) + ' ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9) : String(p); }
+function phoneIntl(p){ var d = digits(p); return d.length === 11 && d[0] === '7' ? '+7 ' + d.slice(1, 4) + ' ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9) : String(p).trim(); }
+function telHref(p){ var d = digits(p); return 'tel:' + (d.length === 11 ? '+' : '') + d; }
+/* из KP_CONFIG берём только известные поля-строки; whatsapp и прочее игнорируем */
+function cleanContacts(c){
+  var o = {}; if(!c || typeof c !== 'object') return o;
+  ['name','role','phone','max','telegram'].forEach(function(k){ var v = c[k]; if(typeof v === 'number') v = String(v); if(typeof v === 'string' && v.trim()) o[k] = v.trim(); });
+  return o;
+}
+function safePath(p){ try{ return encodeURI(decodeURI(p)); }catch(e){ return encodeURI(p); } }
+/* MAX: ссылка max.ru/… (со схемой или без) → открываем; номер телефона → надёжной ссылки по номеру нет, карточка копирует номер */
+function maxOf(v){
+  var s = String(v).trim(), m;
+  if(isPhone(s)) return { copy:phoneIntl(s), t:phoneText(s) };
+  if((m = s.match(/^(?:https?:\/\/)?((?:[a-z0-9-]+\.)*max\.ru)(\/\S*)?$/i))) return { href:'https://' + m[1].toLowerCase() + safePath(m[2] || '/') };
+  var nick = s.replace(/^@/, '');
+  return /^[\w.-]{2,64}$/.test(nick) ? { href:'https://max.ru/' + encodeURIComponent(nick) } : null;
+}
 function channels(C){
-  var ch = [], nm = C.name ? C.name : 'менеджеру';
-  if(C.phone) ch.push({ k:'phone', bg:'#34C759', href:'tel:+' + digits(C.phone), t:phoneText(C.phone), s:'позвонить' + (C.name ? ' · ' + C.name : '') });
-  if(C.whatsapp) ch.push({ k:'wa', bg:'#25D366', href:'https://wa.me/' + digits(C.whatsapp === true ? C.phone : C.whatsapp), t:'WhatsApp', s:'написать в WhatsApp', ext:1 });
+  var ch = [];
+  if(C.phone && digits(C.phone).length >= 5) ch.push({ k:'phone', bg:'#34C759', href:telHref(C.phone), t:phoneText(C.phone), s:'позвонить' + (C.name ? ' · ' + C.name : '') });
+  if(C.max){ var mx = maxOf(C.max);
+    if(mx && mx.copy) ch.push({ k:'max', bg:'#1D1D1F', copy:mx.copy, t:'MAX', s:'номер ' + mx.t });
+    else if(mx) ch.push({ k:'max', bg:'#1D1D1F', href:mx.href, t:'MAX', s:'написать в MAX', ext:1 }); }
   if(C.telegram){ var tg = String(C.telegram).trim().replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me)\//i, '').replace(/^@/, '');
-    var tgPhone = /^\+?[\d\s()-]{10,}$/.test(tg);
-    ch.push({ k:'tg', bg:'#229ED9', href:'https://t.me/' + (tgPhone ? '+' + digits(tg) : encodeURI(tg)), t:'Telegram', s:tgPhone ? 'написать в Telegram' : '@' + tg, ext:1 }); }
-  if(C.max){ var mx = String(C.max).trim().replace(/^(https?:\/\/)?(www\.)?max\.ru\//i, '').replace(/^@/, '');
-    ch.push({ k:'max', bg:'#1D1D1F', href:'https://max.ru/' + encodeURI(mx), t:'MAX', s:'написать в MAX', ext:1 }); }
+    var tgPhone = isPhone(tg);
+    if(tgPhone || /^[\w.+-]{2,64}$/.test(tg))
+      ch.push({ k:'tg', bg:'#229ED9', href:'https://t.me/' + (tgPhone ? '+' + digits(tg) : encodeURIComponent(tg)), t:'Telegram', s:tgPhone ? 'написать в Telegram' : '@' + tg, ext:1 }); }
   return ch;
+}
+/* ссылка или кнопка «скопировать номер» — без on*-атрибутов: клики разбирает один общий обработчик (строгая CSP платформы) */
+function chEl(c, cls, inner, trk, act){
+  if(c.copy) return '<button type="button" class="' + cls + '" data-act="copyMax" data-arg="' + esc(c.copy) + '" data-track="' + trk + '">' + inner + '</button>';
+  return '<a class="' + cls + '" href="' + esc(c.href) + '" data-track="' + trk + '"' + (act ? ' data-act="' + act + '"' : '') + (c.ext ? ' target="_blank" rel="noopener"' : '') + '>' + inner + '</a>';
 }
 function renderPeople(){
   var P = profile(), C = P.contacts || {}, co = P.company || {}, ch = channels(C);
@@ -877,29 +952,30 @@ function renderPeople(){
   var mark = co.mark ? co.mark.replace('<svg', '<svg class="mk"') : '';
   document.getElementById('brand').innerHTML = logo + mark;
   document.getElementById('hMgr').textContent = C.name ? 'Менеджер: ' + C.name : '';
-  var nav = '', call = ch.filter(function(c){ return c.k === 'phone'; })[0], msg = ch.filter(function(c){ return c.k !== 'phone'; })[0];
-  if(call) nav += '<a class="tbtn" href="' + esc(call.href) + '" onclick="track(\'cta_click\',{channel:\'phone\'})">Позвонить</a>';
-  if(msg) nav += '<a class="tbtn p" href="' + esc(msg.href) + '" onclick="track(\'cta_click\',{channel:\'' + msg.k + '\'})" target="_blank" rel="noopener">' + msg.t + '</a>';
+  var nav = '', call = ch.filter(function(c){ return c.k === 'phone'; })[0];
+  var msg = ch.filter(function(c){ return c.k === 'max'; })[0] || ch.filter(function(c){ return c.k === 'tg'; })[0];
+  if(call) nav += chEl(call, 'tbtn', 'Позвонить', 'phone');
+  if(msg) nav += chEl(msg, 'tbtn p', esc(msg.t), msg.k);
   document.getElementById('hNav').innerHTML = nav;
   /* финальный блок */
   document.querySelector('.who .wl').textContent = C.name ? 'Ваш менеджер' : 'Связаться с нами';
   document.getElementById('mName').textContent = C.name || (co.name ? '«' + co.name + '»' : '');
   document.getElementById('mRole').textContent = C.name ? (C.role || [co.name ? '«' + co.name + '»' : '', co.city].filter(Boolean).join(' · ')) : (co.city || '');
   document.getElementById('cts').innerHTML = ch.map(function(c){
-    return '<a class="ct" href="' + esc(c.href) + '" onclick="track(\'cta_click\',{channel:\'' + c.k + '\'})"' + (c.ext ? ' target="_blank" rel="noopener"' : '') + '><span class="ic" style="background:' + c.bg + '">' + (ICO[c.k] || 'M') + '</span><span>' + esc(c.t) + '<small>' + esc(c.s) + '</small></span><span class="go">›</span></a>'; }).join('')
-    || (document.body.classList.contains('editmode') ? '<p class="hint">Контакты менеджера не заполнены — добавьте телефон или мессенджер в OpMax.</p>' : '');
+    return chEl(c, 'ct', '<span class="ic" style="background:' + c.bg + '">' + (ICO[c.k] || 'M') + '</span><span>' + esc(c.t) + '<small>' + esc(c.s) + '</small></span><span class="go">›</span>', c.k); }).join('')
+    || (document.body.classList.contains('editmode') ? '<p class="hint">Контакты менеджера не заполнены — добавьте телефон, MAX или Telegram в OpMax.</p>' : '');
   var tm = P.team, fig = document.getElementById('team'), mg = document.getElementById('mgr');
   if(tm && tm.photo){ fig.hidden = false; document.getElementById('teamImg').src = tm.photo; document.getElementById('teamImg').alt = tm.caption || 'Команда';
     document.getElementById('teamCap').textContent = tm.caption || ''; mg.classList.remove('noteam'); }
   else { fig.hidden = true; mg.classList.add('noteam'); }
   document.getElementById('fCo').textContent = [co.name ? '«' + co.name + '»' : '', co.city, co.what].filter(Boolean).join(' · ');
-  if(co.name) document.title = 'КП № ' + DATA.num + ' · ' + co.name;
+  /* заголовок вкладки на платформе ставит сама платформа — трогаем только в демо */
+  if(co.name && !CFG) document.title = kpLabel() + ' · ' + co.name;
 }
 
 /* ============ 5. ПАНЕЛЬ И СМЕТА ============ */
-window.tglItem = function(i){ ITEMS[i].on = !ITEMS[i].on; track('quote_toggle', { item:ITEMS[i].name, on:ITEMS[i].on }); renderAll(); };
-window.stepItem = function(i, d){ var it = ITEMS[i]; var k = Object.keys(it.q)[0]; it.q[k] = clamp(it.q[k] + d, 0, 200); if(it.q[k] === 0) it.on = false; else it.on = true; track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll(); };
-
+function tglItem(i){ var it = ITEMS[i]; if(!it) return; it.on = !it.on; track('quote_toggle', { item:it.name, on:it.on }); renderAll(); }
+function stepItem(i, d){ var it = ITEMS[i]; if(!it || !d) return; var k = Object.keys(it.q)[0]; it.q[k] = clamp(Math.round((it.q[k] + d) * 100) / 100, 0, 200); it.on = it.q[k] > 0; track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll(); }
 
 function renderItems(){
   var html = '';
@@ -908,10 +984,10 @@ function renderItems(){
     var s = 0; list.forEach(function(it){ if(it.on) s += lineSum(it); });
     html += '<div class="grp"><div class="gh"><span>' + CAT_NAME[cat] + '</span><span>' + money(s) + '</span></div>';
     list.forEach(function(it){
-      var q = qty(it), single = Object.keys(it.q).length === 1;
-      html += '<div class="it' + (it.on ? '' : ' off') + '"><span class="itx">' + esc(it.name) + '<small>' + (it.isCount && single ? '' : fq2(q) + ' ' + unitLabel(it.unit) + ' × ') + money(it.price) + (it.isCount && single ? ' за шт' : '') + '</small></span>'
-        + (it.isCount && single ? '<span class="sb"><button onclick="stepItem(' + it.i + ',-1)">−</button><span>' + q + '</span><button onclick="stepItem(' + it.i + ',1)">+</button></span>' : '')
-        + '<span class="itp">' + money(lineSum(it)) + '</span><span class="sw" onclick="tglItem(' + it.i + ')"></span></div>';
+      var q = qty(it), single = Object.keys(it.q).length === 1, step = it.isCount && single;
+      html += '<div class="it' + (it.on ? '' : ' off') + '"><span class="itx">' + esc(it.name) + '<small>' + (it.opt ? 'по желанию · ' : '') + (step ? '' : fq2(q) + ' ' + esc(unitLabel(it.unit)) + ' × ') + moneyP(it.price) + (step ? ' за шт' : '') + '</small></span>'
+        + (step ? '<span class="sb"><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="-1" aria-label="Меньше">−</button><span>' + fq2(q) + '</span><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="1" aria-label="Больше">+</button></span>' : '')
+        + '<span class="itp">' + money(lineSum(it)) + '</span><button type="button" class="sw" data-act="tglItem" data-arg="' + it.i + '" role="switch" aria-checked="' + it.on + '" aria-label="' + esc(shortName(it)) + ' — в смете"></button></div>';
     });
     html += '</div>';
   });
@@ -926,18 +1002,18 @@ function renderSum(){
   var rows = '';
   CAT_ORDER.forEach(function(cat){ var s = 0, any = false; ITEMS.forEach(function(it){ if(it.cat === cat){ any = true; if(it.on) s += lineSum(it); } });
     if(any) rows += '<div class="srow"><span>' + CAT_NAME[cat] + '</span><span>' + money(s) + '</span></div>'; });
-  if(d) rows += '<div class="srow disc"><span>Скидка ' + DATA.discount + ' %</span><span>−' + money(d) + '</span></div>';
+  if(d) rows += '<div class="srow disc"><span>Скидка ' + fq2(DATA.discount) + ' %</span><span>−' + money(d) + '</span></div>';
   document.getElementById('sRows').innerHTML = rows;
   ['hTotal','aTotal','mTotal'].forEach(function(id){ var e = document.getElementById(id); if(e) e.textContent = money(t); });
   var hp = document.getElementById('hTotal'); hp.classList.remove('pulse'); void hp.offsetWidth; hp.classList.add('pulse');
   document.getElementById('mSub').textContent = note;
-  document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '. Цена действительна до ' + DATA.until + '.';
+  document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '.' + (DATA.until ? ' Цена действительна до ' + DATA.until + '.' : '');
   /* шапка */
   document.getElementById('h1').innerHTML = 'Натяжной потолок' + (F.area ? ' <span style="white-space:nowrap">' + fq2(F.area) + '&nbsp;м²</span>' : '');
   document.getElementById('hsub').innerHTML = '<b>' + F.brand + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
     + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + ' света' : '') + (F.chand ? ' · ' + plural(Math.round(F.chand), 'точка', 'точки', 'точек') + ' под люстру' : '')
     + (F.lines ? ' · световые линии ' + fq2(F.lines) + ' м' : '') + (F.track ? ' · трек ' + fq2(F.track) + ' м' : '') + (F.cornice ? ' · ниша под шторы' : '')
-    + (d ? ' · скидка ' + DATA.discount + ' %' : '');
+    + (d ? ' · скидка ' + fq2(DATA.discount) + ' %' : '');
   /* что важно знать: примыкание и высота */
   var CUT = {
     standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
@@ -957,72 +1033,137 @@ function renderSum(){
   var inc = ['монтаж', 'закладные под свет'];
   if(cnt(['fixture']) > 0) inc.push('светильники с лампами'); else inc.push('вывоз обрезков и упаковки');
   document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '');
-  document.getElementById('fLine').textContent = 'КП № ' + DATA.num + ' от ' + DATA.date + ' · действует до ' + DATA.until + (DATA.addr ? ' · объект: ' + DATA.addr : '') + (DATA.client ? ' · для: ' + DATA.client : '');
 }
 /* каждый блок рисуется сам: сбой в одном (необычная строка сметы) не должен оставить без контактов и фото */
-function renderAll(){ [renderVars, renderItems, renderSum, buildCut, renderPhotos, renderPeople].forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } }); }
+function renderAll(){
+  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople] : [renderVars, renderItems, renderSum, buildCut, renderPhotos, renderPeople];
+  list.forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
+}
+/* смета ещё пустая (черновик в OpMax): никаких цифр-примеров, только понятная заглушка в первом экране */
+function renderEmpty(){
+  document.getElementById('h1').textContent = 'Натяжной потолок';
+  document.getElementById('hsub').textContent = '';
+}
 
-window.copySpec = function(){
+/* копирование: Clipboard API, а где он недоступен (фрейм, http) — через скрытое поле */
+function copyText(t, okMsg, failMsg){
+  function fallback(){
+    var ok = false;
+    try{ var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+    toast(ok ? okMsg : (failMsg || 'Не удалось скопировать'));
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ toast(okMsg); }, fallback);
+  else fallback();
+}
+function copySpec(){
   var co = profile().company || {};
-  var L = ['Смета к КП № ' + DATA.num + (co.name ? ' — «' + co.name + '»' + (co.city ? ', ' + co.city : '') : ''), (DATA.addr ? 'Объект: ' + DATA.addr : ''), ''];
+  var L = ['Смета к ' + kpLabel() + (co.name ? ' — «' + co.name + '»' + (co.city ? ', ' + co.city : '') : '')];
+  if(DATA.addr) L.push('Объект: ' + DATA.addr); L.push('');
   L.push(['Позиция', 'Ед.', 'Цена', 'Кол-во', 'Сумма'].join('\t'));
-  ITEMS.forEach(function(it){ if(it.on) L.push([it.name, unitLabel(it.unit), it.price, fq2(qty(it)), Math.round(lineSum(it))].join('\t')); });
-  L.push(''); if(discount()){ L.push('Сумма\t' + Math.round(gross())); L.push('Скидка ' + DATA.discount + '%\t−' + discount()); }
-  L.push('ИТОГО\t' + total()); L.push('Цена действительна до ' + DATA.until);
-  var t = L.join('\n');
-  if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('Смета скопирована'); }).catch(function(){ toast('Не удалось скопировать'); });
-};
+  ITEMS.forEach(function(it){ if(it.on) L.push([it.name, unitLabel(it.unit), fq2(it.price), fq2(qty(it)), Math.round(lineSum(it))].join('\t')); });
+  L.push(''); if(discount()){ L.push('Сумма\t' + Math.round(gross())); L.push('Скидка ' + fq2(DATA.discount) + '%\t−' + discount()); }
+  L.push('ИТОГО\t' + total()); if(DATA.until) L.push('Цена действительна до ' + DATA.until);
+  copyText(L.join('\n'), 'Смета скопирована');
+}
 function track(t, p){ try{ if(window.__kpTrack) window.__kpTrack(t, p || {}); }catch(e){} }
-window.track = track;
 /* «Согласовать» ничего не отправляет само — готовим сообщение менеджеру с составом, клиент отправляет его сам */
 function approveText(){
-  var on = ITEMS.filter(function(it){ return it.on; }), off = ITEMS.filter(function(it){ return !it.on; }).map(function(it){ return shortName(it); });
+  var on = ITEMS.filter(function(it){ return it.on; });
+  var off = ITEMS.filter(function(it){ return it.on0 && !it.on; }).map(function(it){ return shortName(it); });
+  var add = ITEMS.filter(function(it){ return !it.on0 && it.on; }).map(function(it){ return shortName(it); });
   var ch = ITEMS.filter(function(it){ return it.on && JSON.stringify(it.q) !== it.q0; }).map(function(it){ return shortName(it) + ' — ' + fq2(qty(it)) + ' ' + unitLabel(it.unit); });
-  return 'Здравствуйте! КП № ' + DATA.num + (DATA.addr ? ', объект ' + DATA.addr : '') + (DATA.variants ? ', вариант «' + DATA.variants[vi].title + '»' : '')
+  return 'Здравствуйте! ' + (DATA.num ? 'КП № ' + DATA.num : 'Коммерческое предложение по натяжному потолку') + (DATA.addr ? ', объект ' + DATA.addr : '') + (DATA.variants ? ', вариант «' + DATA.variants[vi].title + '»' : '')
     + ': состав подходит — ' + plural(on.length, 'позиция', 'позиции', 'позиций') + ' на ' + money(total()) + '.'
-    + (off.length ? ' Без позиций: ' + off.join('; ') + '.' : '') + (ch.length ? ' Другое количество: ' + ch.join('; ') + '.' : '')
+    + (off.length ? ' Без позиций: ' + off.join('; ') + '.' : '') + (add.length ? ' Добавить: ' + add.join('; ') + '.' : '') + (ch.length ? ' Другое количество: ' + ch.join('; ') + '.' : '')
     + ' Подскажите, как оформить договор?';
 }
-window.approve = function(){
-  var b = document.getElementById('okBox'), F = flags(), C = profile().contacts || {}, ch = channels(C), txt = approveText();
+function approve(){
+  var b = document.getElementById('okBox'), F = flags(), C = profile().contacts || {}, ch = channels(C);
   var on = ITEMS.filter(function(it){ return it.on; }).length;
   track('accept_click', { total:total(), variant:DATA.variants ? DATA.variants[vi].title : '', items:on });
-  var wa = ch.filter(function(c){ return c.k === 'wa'; })[0], other = ch.filter(function(c){ return c.k !== 'wa'; });
-  var btns = (wa ? '<a class="btn p" href="' + esc(wa.href + '?text=' + encodeURIComponent(txt)) + '" target="_blank" rel="noopener" onclick="track(\'cta_click\',{channel:\'wa-accept\'})">Отправить в WhatsApp</a>' : '')
-    + other.map(function(c){ return '<a class="btn g" href="' + esc(c.href) + '"' + (c.ext ? ' target="_blank" rel="noopener"' : '') + '>' + (c.k === 'phone' ? 'Позвонить' : esc(c.t)) + '</a>'; }).join('')
-    + '<button class="btn g" onclick="copyApprove()">Скопировать сообщение</button>';
+  var ph = ch.filter(function(c){ return c.k === 'phone'; })[0], mx = ch.filter(function(c){ return c.k === 'max'; })[0], tg = ch.filter(function(c){ return c.k === 'tg'; })[0];
+  /* сначала — скопировать сообщение; мессенджер открывается следом, текст уже в буфере */
+  var btns = '<button type="button" class="btn p" data-act="copyApprove">Скопировать сообщение</button>'
+    + (mx ? chEl(mx, 'btn g', mx.copy ? 'MAX: скопировать номер' : 'Открыть MAX', 'max-accept', 'copyThen') : '')
+    + (tg ? chEl(tg, 'btn g', 'Telegram', 'tg-accept', 'copyThen') : '')
+    + (ph ? chEl(ph, 'btn g', 'Позвонить', 'phone-accept') : '');
   b.innerHTML = '<b>' + plural(on, 'позиция', 'позиции', 'позиций') + ' на ' + money(total()) + '</b> — ' + esc(F.brand) + ', ' + SYS_NAME[F.system]
-    + (DATA.variants ? ', вариант «' + esc(DATA.variants[vi].title) + '»' : '') + '.<br>Отправьте этот состав ' + (C.name ? 'менеджеру (' + esc(C.name) + ')' : 'нам') + ' — по нему подготовим договор.'
+    + (DATA.variants ? ', вариант «' + esc(DATA.variants[vi].title) + '»' : '') + '.<br>'
+    + (ch.length ? 'Скопируйте сообщение с этим составом и отправьте ' + (C.name ? 'менеджеру (' + esc(C.name) + ')' : 'нам') + ' — по нему подготовим договор.'
+                 : 'Скопируйте сообщение с этим составом и отправьте нам — по нему подготовим договор.')
     + '<div class="okact">' + btns + '</div>';
   b.classList.add('show'); b.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block:'center' });
-};
-window.copyApprove = function(){ var t = approveText();
-  if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('Сообщение скопировано — вставьте его в мессенджер'); }).catch(function(){ toast('Не удалось скопировать'); }); };
-window.fq = function(b){ b.parentNode.classList.toggle('open'); };
-window.go = function(id){ document.getElementById(id).scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); };
+}
+function go(id){ var el = document.getElementById(id); if(el) el.scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }
 var tt; function toast(m){ var el = document.getElementById('toastEl'); el.textContent = m; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ el.classList.remove('show'); }, 3200); }
-window.toast = toast;
 
-/* ============ 6. СТАРТ: KP_CONFIG от платформы либо демо ============ */
-function boot(cfg){
-  cfg.num = cfg.num || '0915'; cfg.date = cfg.date || '15.09.2026'; cfg.until = cfg.until || '24.09.2026'; cfg.discount = cfg.discount || 0;
-  load(cfg);
-  document.getElementById('hNum').textContent = 'КП № ' + cfg.num; document.getElementById('hDate').textContent = cfg.date; document.getElementById('hUntil').textContent = cfg.until;
-  document.getElementById('hAddr').textContent = 'Натяжной потолок' + (cfg.addr ? ' · ' + cfg.addr : '');
-  vi = 0;
+/* ============ 6. ОДИН ОБРАБОТЧИК НА ВСЕ КЛИКИ ============
+   На платформе строгая CSP (script-src 'nonce-…' 'strict-dynamic'): встроенные обработчики-атрибуты и ссылки-скрипты
+   браузер блокирует. Поэтому в разметке только data-act="имя" (+ data-arg), data-track="канал" — для cta_click. */
+var ACT = {
+  approve: function(){ approve(); },
+  copySpec: function(){ copySpec(); },
+  copyApprove: function(){ copyText(approveText(), 'Сообщение скопировано — вставьте его в мессенджер'); },
+  /* ссылка на мессенджер в блоке «Согласовать»: переход не отменяем, но сначала кладём сообщение в буфер */
+  copyThen: function(){ copyText(approveText(), 'Сообщение скопировано — вставьте его в чат'); },
+  copyMax: function(a){ copyText(a || '', 'Номер скопирован — найдите его в MAX', 'Номер для MAX: ' + (a || '')); },
+  openLb: function(a){ openLb(parseInt(a, 10) || 0); },
+  closeLb: function(){ closeLb(); },
+  stepLb: function(a){ stepLb(parseInt(a, 10) || 1); },
+  go: function(a){ go(a); },
+  setVar: function(a){ setVar(parseInt(a, 10) || 0); },
+  tglVid: function(){ tglVid(); },
+  tglItem: function(a){ tglItem(parseInt(a, 10)); },
+  stepItem: function(a, el){ stepItem(parseInt(a, 10), parseInt(el.getAttribute('data-d'), 10) || 0); }
+};
+document.addEventListener('click', function(e){
+  var t = e.target, el = t && t.closest ? t.closest('[data-act],[data-track]') : null;
+  if(!el) return;
+  var tr = el.getAttribute('data-track'); if(tr) track('cta_click', { channel:tr });
+  var f = ACT[el.getAttribute('data-act')]; if(!f) return;
+  if(el.tagName !== 'A') e.preventDefault();
+  f(el.getAttribute('data-arg'), el, e);
+});
+document.addEventListener('change', function(e){ var t = e.target; if(t && t.id === 'demoSel') loadDemo(t.value); });
+
+/* ============ 7. СТАРТ: KP_CONFIG от платформы либо демо ============ */
+/* шапка, срок, подвал — только из того, что пришло: номер, дату и срок не выдумываем */
+function renderHead(eyebrow){
+  document.getElementById('hNum').textContent = kpLabel();
+  document.getElementById('hDate').textContent = DATA.date; document.getElementById('hDateW').hidden = !DATA.date;
+  document.getElementById('hUntil').textContent = DATA.until; document.getElementById('hValid').hidden = !DATA.until;
+  var who = DATA.addr || DATA.client;
+  document.getElementById('hAddr').textContent = eyebrow || 'Натяжной потолок' + (who ? ' · ' + who : '');
+  document.getElementById('fLine').textContent = kpLabel() + (DATA.date ? ' от ' + DATA.date : '') + (DATA.until ? ' · действует до ' + DATA.until : '')
+    + (DATA.addr ? ' · объект: ' + DATA.addr : '') + (DATA.client ? ' · для: ' + DATA.client : '');
+}
+function boot(cfg, eyebrow){
+  var est = normEstimate(cfg);
+  DATA = { variants:est.variants, items:est.items, discount:clamp(numOf(cfg.discount), 0, 100),
+           num:cfg.num == null ? '' : String(cfg.num).trim(), date:fmtDate(cfg.date), until:fmtDate(cfg.until),
+           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim() };
+  EMPTY = !DATA.variants && !DATA.items.length;
+  document.body.classList.toggle('noest', EMPTY);
+  vi = 0; load();
+  var ok = document.getElementById('okBox'); ok.classList.remove('show'); ok.innerHTML = '';
+  renderHead(eyebrow);
   renderAll();
 }
-window.loadDemo = function(key){ var d = DEMOS.filter(function(x){ return x.key === key; })[0]; if(d) boot(JSON.parse(JSON.stringify(d))); };
-if(CFG && (CFG.items || CFG.variants)){ document.getElementById('demoBox').style.display = 'none'; boot(CFG); }
-else if(CFG){
-  /* платформа пока не передала смету: показываем условный пример без чужих адресов и без селектора демо */
-  document.getElementById('demoBox').style.display = 'none';
-  var smp = JSON.parse(JSON.stringify(DEMOS[0])); delete smp.addr; delete smp.client; smp.num = CFG.num || '—'; if(CFG.until) smp.until = CFG.until;
-  boot(smp); document.getElementById('hAddr').textContent = 'Пример сметы · ваша появится здесь после замера';
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function loadDemo(key){ var d = DEMOS.filter(function(x){ return x.key === key; })[0]; if(d) boot(clone(d)); }
+if(CFG && CFG.demo === true){
+  /* предпросмотр макета в OpMax («Новое КП»): встроенная смета с пометкой «Пример», без чьих-либо контактов,
+     номер и сроки — только если их прислала платформа */
+  var smp = DEMOS.filter(function(x){ return x.key === 'gaiduk'; })[0] || DEMOS[0];
+  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until },
+       'Пример сметы · натяжной потолок');
 }
+else if(CFG) boot(CFG);   /* смета из OpMax; без позиций — пустое состояние, без чужих цифр */
 else {
   var sel = document.getElementById('demoSel');
-  sel.innerHTML = DEMOS.map(function(d){ return '<option value="' + d.key + '">' + d.title + '</option>'; }).join('');
+  document.getElementById('demoBox').hidden = false;
+  sel.innerHTML = DEMOS.map(function(d){ return '<option value="' + esc(d.key) + '">' + esc(d.title) + '</option>'; }).join('');
   var h = location.hash.replace(/^#/, '').split('&').map(function(p){ return p.split('='); }).filter(function(p){ return p[0] === 'demo'; })[0];
   if(h && DEMOS.some(function(d){ return d.key === h[1]; })) sel.value = h[1];
   loadDemo(sel.value);

@@ -48,7 +48,7 @@
 .sec:not(.w) .it .sb{background:var(--canvas)}
 .it .sb button{width:30px;height:30px;border:none;background:none;font-size:17px;color:var(--blue);cursor:pointer;line-height:1;font-weight:500}
 .it .sb span{width:36px;line-height:30px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.it .sw{width:38px;height:24px;border-radius:12px;background:#E9E9EB;position:relative;flex-shrink:0;transition:.2s;cursor:pointer}
+.it .sw{width:38px;height:24px;border-radius:12px;background:#E9E9EB;position:relative;flex-shrink:0;transition:.2s;cursor:pointer;border:none;padding:0}
 .it .sw:after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:.2s}
 .it:not(.off) .sw{background:var(--green)}
 .it:not(.off) .sw:after{transform:translateX(14px)}
@@ -84,7 +84,7 @@
 .lb button{position:absolute;border:none;background:rgba(255,255,255,.14);color:#fff;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;display:grid;place-items:center;line-height:1}
 .lb button:hover{background:rgba(255,255,255,.24)}
 .lb .x{top:10px;right:12px}.lb .pv{left:14px;top:50%}.lb .nx{right:14px;top:50%}
-@media(max-width:600px){.lb .pv,.lb .nx{top:auto;bottom:18px}.lb .lbc{margin-bottom:56px}}
+@media(max-width:600px){.lb .pv,.lb .nx{background:rgba(0,0,0,.42)}.lb .pv{left:8px}.lb .nx{right:8px}}
 /* шапка: логотип */
 .brand{display:flex;align-items:center;flex-shrink:0;line-height:0}
 .brand svg,.brand img{height:26px;width:auto;display:block}
@@ -103,18 +103,24 @@
 .who .wl{font-size:14px;color:var(--mut);font-weight:500;letter-spacing:-.224px}
 .who .wn{font-size:clamp(26px,3vw,32px);font-weight:600;letter-spacing:-.4px;line-height:1.1;margin-top:4px}
 .who .wr{font-size:15px;color:var(--mut);margin-top:4px;letter-spacing:-.2px}
+/* пустая смета (черновик OpMax без позиций): прячем всё, что считается из сметы */
+body.noest .needest{display:none!important}
+.empty{display:none;margin-top:28px;border:1px dashed var(--line2);border-radius:var(--r-lg);padding:clamp(22px,4vw,36px);background:var(--surf);
+  font-size:clamp(17px,2vw,21px);font-weight:500;letter-spacing:-.3px;line-height:1.35;color:var(--ink2)}
+.empty small{display:block;margin-top:6px;font-size:14px;font-weight:400;color:var(--mut);letter-spacing:-.2px}
+body.noest .empty{display:block}
 </style>
 
 <header class="top">
   <div class="topin">
     <span class="brand" id="brand"></span>
-    <span class="stamp"><b id="hNum">КП № 0915</b><span class="hid"> · <span id="hDate">15.09.2026</span></span></span>
+    <span class="stamp"><b id="hNum">КП</b><span class="hid" id="hDateW" hidden> · <span id="hDate"></span></span></span>
     <span class="stamp hid" id="hMgr"></span>
     <nav class="tnav" id="hNav"></nav>
   </div>
 </header>
-<div class="valid">Цена действительна до <span id="hUntil">24.09.2026</span></div>
-<div class="demo" id="demoBox"><b>Шаблон · реальные сметы Павла</b><select id="demoSel" onchange="loadDemo(this.value)"></select><small>На платформе этой полосы нет — смета приходит из OpMax</small></div>
+<div class="valid needest" id="hValid" hidden>Цена действительна до <span id="hUntil"></span></div>
+<div class="demo" id="demoBox" hidden><b>Шаблон · реальные сметы Павла</b><select id="demoSel" aria-label="Демо-смета"></select><small>На платформе этой полосы нет — смета приходит из OpMax</small></div>
 
 <!-- ПОТОЛОК -->
 <section class="sec hero" data-kp-block="cover">
@@ -125,20 +131,21 @@
         <h1 style="margin-top:10px" id="h1"></h1>
         <p class="hsub" id="hsub"></p>
       </div>
-      <div class="price num"><small>Итого</small><span id="hTotal"></span></div>
+      <div class="price num needest"><small>Итого</small><span id="hTotal"></span></div>
     </div>
 
-    <div class="cut" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
-    <div class="leg" id="leg"></div>
+    <div class="empty" id="emptyBox">Смета появится здесь — добавьте позиции в редакторе OpMax<small>Итог, разрез потолка и варианты построятся по позициям сметы сами.</small></div>
+    <div class="cut needest" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
+    <div class="leg needest" id="leg"></div>
 
-    <div id="varsPan" style="display:none">
+    <div id="varsPan" class="needest" style="display:none">
       <div class="vars" id="vars"></div>
     </div>
   </div>
 </section>
 
 <!-- СМЕТА -->
-<section class="sec w" id="smeta" data-kp-block="quote-multi">
+<section class="sec w needest" id="smeta" data-kp-block="smeta">
   <div class="wrap">
     <span class="no">Смета</span>
     <h2 style="margin-top:10px">Состав и цена</h2>
@@ -151,8 +158,8 @@
           <div class="sv num" id="sTotal"></div>
           <div class="sn" id="sNote"></div>
           <div id="sRows"></div>
-          <button class="btn btn2" style="background:var(--ink-b);color:#fff" onclick="approve()">Согласовать</button>
-          <button class="btn btn2" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);margin-top:8px" onclick="copySpec()">Скопировать смету</button>
+          <button type="button" class="btn btn2" style="background:var(--ink-b);color:#fff" data-act="approve">Согласовать</button>
+          <button type="button" class="btn btn2 g" style="margin-top:8px" data-act="copySpec">Скопировать смету</button>
         </div>
       </aside>
     </div>
@@ -160,13 +167,13 @@
     <div class="edit">
       <b>Служебная панель — только по ссылке с #edit</b>
       <ul>
-        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {addr, num, date, until, discount, items:[{name, unit, price, qty}], photos:[url…]}</code>. Имена позиций — как в Excel Павла; страница сама определяет систему примыкания, свет, карнизы и строит потолок.</li>
+        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional}], contacts, media}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит потолок. Единицы: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить.</li>
         <li>Два варианта одному клиенту: <code>variants:[{title, note, items}]</code> вместо <code>items</code>.</li>
         <li><code>qty</code> — число (всё в «Общая») или объект <code>{"Общая":2.8,"Детская":3.1}</code>.</li>
-        <li>Проверено на 7 сметах (8 вариантов) — сходятся с Excel до рубля, включая скидки.</li>
-        <li>Если платформа передала конфиг без сметы, показывается условный пример без чужих адресов, селектор демо скрыт.</li>
-        <li><b>Согласовать</b> ничего не отправляет само: собирает сообщение с составом (что убрано/изменено) и открывает WhatsApp менеджера, либо даёт скопировать. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>.</li>
-        <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, whatsapp, telegram, max}</code>. Телефон/WhatsApp/Telegram — как в блоке «Контакты» OpMax; <code>name</code>, <code>role</code> и <code>max</code> — новые поля. <b>Сейчас OpMax их в KP_CONFIG не передаёт</b> — нужна доработка платформы (профиль менеджера → KP_CONFIG.contacts). Без них блок показывает только компанию, чужие контакты не подставляются. Пустые каналы не показываются; в шапке — «Позвонить» и первый заполненный мессенджер. Telegram — ник, ссылка или номер; MAX — ссылка или ник.</li>
+        <li>Номер, дата и срок — только из конфига: нет <code>num</code> — в шапке «КП» без номера, нет <code>until</code> — полосы «Цена действительна до» нет. Ничего не выдумывается.</li>
+        <li>Конфиг без сметы (свежий черновик) — в первом экране «Смета появится здесь», блоки сметы скрыты. <code>demo:true</code> (предпросмотр макета) — одна встроенная смета с пометкой «Пример» и без контактов.</li>
+        <li><b>Согласовать</b> ничего не отправляет само: собирает сообщение с составом (что убрано/изменено/добавлено) — клиент копирует его и сам пишет в MAX или Telegram. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>.</li>
+        <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, max, telegram}</code>. MAX — ссылка (max.ru/…) или номер: по номеру ссылки нет, карточка копирует номер. Telegram — ник, ссылка или номер. WhatsApp не показывается. Без контактов блок показывает только компанию, чужие контакты не подставляются. В шапке — «Позвонить» и первый мессенджер (MAX, затем Telegram).</li>
         <li><b>Фото и видео</b> — из загрузок OpMax (<code>media:[{url, kind, name}]</code>). Объектом считается только файл, в имени которого есть тег или слово «объект»/«работа»: «теневой», «парящий», «линии», «трек», «карниз/ниша», «подсветка», «бесщелевой»… Такие фото встают перед библиотекой компании; страница ставит вперёд объекты с тем, что есть в смете, и отодвигает фото с фишками, которых в смете нет. Файл с «команда» в имени — фото команды; видео с тегом/«объект» в имени — ролик блока (в PDF печатается только с обложкой: файл «обложка»/«poster»).</li>
       </ul>
     </div>
@@ -174,7 +181,7 @@
 </section>
 
 <!-- ЧТО ВАЖНО ЗНАТЬ -->
-<section class="sec" data-kp-block="terms">
+<section class="sec needest" data-kp-block="terms">
   <div class="wrap">
     <span class="no">Коротко</span>
     <h2 style="margin-top:10px">Что важно знать</h2>
@@ -194,7 +201,7 @@
     <h2 style="margin-top:10px" id="phTitle">Наши работы</h2>
     <p class="lead" id="phLead"></p>
     <div class="photos" id="photos"></div>
-    <button class="btn g more" id="phMore" onclick="openLb(0)" hidden></button>
+    <button type="button" class="btn g more" id="phMore" data-act="openLb" data-arg="0" hidden></button>
   </div>
 </section>
 
@@ -202,15 +209,15 @@
 <section class="sec" id="accept" data-kp-block="accept">
   <div class="wrap">
     <div class="acc">
-      <div class="accr">
+      <div class="accr needest">
         <div>
           <div class="al">Итого</div>
           <div class="av num" id="aTotal"></div>
           <div class="ad" id="aDesc"></div>
         </div>
-        <div class="acb"><button class="btn p" onclick="approve()">Согласовать</button><small>Подготовим сообщение менеджеру с этим составом — отправляете вы сами</small></div>
+        <div class="acb"><button type="button" class="btn p" data-act="approve">Согласовать</button><small>Подготовим сообщение менеджеру с этим составом — отправляете вы сами</small></div>
       </div>
-      <div class="okb" id="okBox"></div>
+      <div class="okb needest" id="okBox" aria-live="polite"></div>
       <div class="mgr" id="mgr">
         <figure class="team" id="team" hidden><img id="teamImg" alt=""><figcaption id="teamCap"></figcaption></figure>
         <div class="who">
@@ -228,15 +235,16 @@
   <span id="fCo"></span><br>
   <span id="fLine"></span>
 </div>
-<div class="mbar">
+<div class="mbar needest">
   <span class="mv"><b class="num" id="mTotal"></b><small id="mSub"></small></span>
-  <button onclick="go('accept')">Согласовать</button>
+  <button type="button" data-act="go" data-arg="accept">Согласовать</button>
 </div>
-<div class="toast" id="toastEl"></div>
+<div class="toast" id="toastEl" role="status" aria-live="polite"></div>
+<div hidden data-kp-estimate data-kp-contacts></div>
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Фото объектов">
-  <button class="x" onclick="closeLb()" aria-label="Закрыть">×</button>
-  <button class="pv" onclick="stepLb(-1)" aria-label="Предыдущее">‹</button>
+  <button type="button" class="x" data-act="closeLb" aria-label="Закрыть">×</button>
+  <button type="button" class="pv" data-act="stepLb" data-arg="-1" aria-label="Предыдущее">‹</button>
   <img id="lbImg" alt="">
   <div class="lbc" id="lbCap"></div>
-  <button class="nx" onclick="stepLb(1)" aria-label="Следующее">›</button>
+  <button type="button" class="nx" data-act="stepLb" data-arg="1" aria-label="Следующее">›</button>
 </div>
