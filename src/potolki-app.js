@@ -279,13 +279,14 @@ function wantTags(F){
 var SIGN = ['shadow','float','seamless','line','track','cornice','two-level','gloss'];
 function pickPhotos(lib, want, n){
   /* фото с заметной фишкой, которой нет в смете (парящий, линии, трек…), уходит назад — не обещаем чужого */
-  var fit = function(x){ return (x.score || 0) - 2 * (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
+  var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
+  var fit = function(x){ return (x.score || 0) - 10 * miss(x); };
   var all = lib.slice().sort(function(a, b){ return fit(b) - fit(a); }), used = [], hit = [];
   function has(p, t){ return (p.tags || []).indexOf(t) >= 0; }
   for(var round = 0; used.length < n && round < 6; round++){
     var added = false;
     want.forEach(function(t){ if(used.length >= n) return;
-      var p = all.filter(function(x){ return used.indexOf(x) < 0 && has(x, t); })[0];
+      var p = all.filter(function(x){ return used.indexOf(x) < 0 && has(x, t) && !miss(x); })[0];
       if(p){ used.push(p); added = true; if(hit.indexOf(t) < 0) hit.push(t); } });
     if(!added) break;
   }
@@ -358,9 +359,11 @@ var ICO = {
   wa:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5a9.5 9.5 0 0 0-8.2 14.3L2.5 21.5l4.8-1.3A9.5 9.5 0 1 0 12 2.5zm5.3 13.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.9 0-1.4.7-2 1-2.3.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.6 2.1 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.3z"/></svg>',
   tg:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M20.7 4.3 2.9 11.2c-1.2.5-1.2 1.2-.2 1.5l4.5 1.4 1.7 5.3c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l3-14.3c.3-1.3-.5-1.8-1.3-1.6zM8.9 13.9l9-5.7c.4-.3.8-.1.5.2l-7.7 7-.3 3.2-1.5-4.7z"/></svg>'
 };
+/* номер — в одном виде, как бы менеджер его ни ввёл: 8 938 523-44-37 */
+function phoneText(p){ var d = digits(p); return d.length === 11 && d[0] === '7' ? '8 ' + d.slice(1, 4) + ' ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9) : String(p); }
 function channels(C){
   var ch = [], nm = C.name ? C.name : 'менеджеру';
-  if(C.phone) ch.push({ k:'phone', bg:'#34C759', href:'tel:+' + digits(C.phone), t:C.phone, s:'позвонить' + (C.name ? ' · ' + C.name : '') });
+  if(C.phone) ch.push({ k:'phone', bg:'#34C759', href:'tel:+' + digits(C.phone), t:phoneText(C.phone), s:'позвонить' + (C.name ? ' · ' + C.name : '') });
   if(C.whatsapp) ch.push({ k:'wa', bg:'#25D366', href:'https://wa.me/' + digits(C.whatsapp === true ? C.phone : C.whatsapp), t:'WhatsApp', s:'написать в WhatsApp', ext:1 });
   if(C.telegram){ var tg = String(C.telegram).trim().replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me)\//i, '').replace(/^@/, '');
     var tgPhone = /^\+?[\d\s()-]{10,}$/.test(tg);
