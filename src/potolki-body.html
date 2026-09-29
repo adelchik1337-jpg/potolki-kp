@@ -19,6 +19,19 @@
 .leg span b{color:var(--ink);font-weight:500}
 .leg span em{font-style:normal;color:var(--mut);font-variant-numeric:tabular-nums}
 @media(max-width:600px){.cut{padding:12px 10px 8px}.leg span{font-size:13px}}
+/* плитки узлов: при .wrap 1024 auto-fill даёт 2 / 3 / 4 колонки на 390 / 768 / 1440; на телефоне — всегда две.
+   auto-fill, не auto-fit: пустые колонки остаются, и одна-две плитки не растягиваются на всю ширину (4:3 → квадрат в 700px) */
+.nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:24px}
+@media(max-width:700px){.nodes{grid-template-columns:1fr 1fr}}
+.nodes .ph2 .cap{font-size:14px}
+/* заглушка без фото — пиктограмма и название узла в цветах карточек «Что важно знать»; это div, не кнопка */
+.nodes .ph2.ico{display:grid;place-items:center;cursor:default;padding:0 12px 36px}
+.nodes .ico svg{width:100%;max-width:150px;height:auto;display:block}
+.nodes .ico .cap{color:var(--ink);background:none;padding-top:0}
+/* «Схема»: разрез свёрнут; в печати (PDF платформы) всегда развёрнут — id+атрибут перевешивают общее [hidden] */
+.scheme{margin-top:18px}
+#cut-body .cut{margin-top:14px}
+@media print{#cut-body[hidden]{display:block!important}}
 .vars{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
 .var{flex:1;min-width:220px;border:2px solid transparent;border-radius:var(--r-lg);padding:16px 18px;background:var(--surf);cursor:pointer;transition:.15s;text-align:left;display:flex;align-items:center;gap:14px}
 .var:hover{background:#EFEFF2}
@@ -135,8 +148,16 @@ body.noest .empty{display:block}
     </div>
 
     <div class="empty" id="emptyBox">Смета появится здесь — добавьте позиции в редакторе OpMax<small>Итог, разрез потолка и варианты построятся по позициям сметы сами.</small></div>
-    <div class="cut needest" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
-    <div class="leg needest" id="leg"></div>
+    <div class="nodes needest" id="nodes"></div>
+    <div class="scheme needest">
+      <!-- Кнопки «Показать схему» нет (основатель, 29.09.2026): клиенту схема не нужна,
+           на экране её не показываем; в печати/PDF она разворачивается CSS-правилом
+           @media print — для бригады монтажа. -->
+      <div id="cut-body" hidden>
+        <div class="cut" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
+        <div class="leg" id="leg"></div>
+      </div>
+    </div>
 
     <div id="varsPan" class="needest" style="display:none">
       <div class="vars" id="vars"></div>
@@ -149,7 +170,7 @@ body.noest .empty{display:block}
   <div class="wrap">
     <span class="no">Смета</span>
     <h2 style="margin-top:10px">Состав и цена</h2>
-    <p class="lead" style="margin-top:8px">Можно убрать позицию или изменить количество — итог пересчитается, потолок наверху перестроится.</p>
+    <p class="lead" style="margin-top:8px">Позиции «по желанию» можно включить, выключить или изменить количество — состав наверху пересчитается сам. Остальное входит в систему потолка и не убирается.</p>
     <div class="rg">
       <div id="items"></div>
       <aside>
@@ -167,7 +188,7 @@ body.noest .empty{display:block}
     <div class="edit">
       <b>Служебная панель — только по ссылке с #edit</b>
       <ul>
-        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional}], contacts, media}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит потолок. Единицы: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить.</li>
+        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional, image}], contacts, media}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит плитки узлов и разрез. Единицы: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить; тумблер есть только у таких строк, обязательные не отключаются. <code>image:{url}</code> — фото узла, привязанное к позиции в каталоге OpMax: встаёт на плитку в первом экране раньше библиотечного.</li>
         <li>Два варианта одному клиенту: <code>variants:[{title, note, items}]</code> вместо <code>items</code>.</li>
         <li><code>qty</code> — число (всё в «Общая») или объект <code>{"Общая":2.8,"Детская":3.1}</code>.</li>
         <li>Номер, дата и срок — только из конфига: нет <code>num</code> — в шапке «КП» без номера, нет <code>until</code> — полосы «Цена действительна до» нет. Ничего не выдумывается.</li>

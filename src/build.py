@@ -97,7 +97,8 @@ def build(q_photo, n_photos):
           '   Контакты менеджера — из KP_CONFIG.contacts, видео и свои фото КП — из KP_CONFIG.media. */\n'
           'var DEMO_PROFILE = ' + json.dumps(p2, ensure_ascii=False) + ';')
     return ('<!-- «Высокий уровень» (Новороссийск) — КП на натяжной потолок. Макет спец-заказа OpMax, собран build.py '
-            'из исходников potolki-*; руками не править. Смета, номер, сроки, контакты и медиа — из window.KP_CONFIG. -->\n'
+            'из исходников potolki-*; руками не править. Смета, номер, сроки, контакты и медиа — из window.KP_CONFIG. '
+            'v2 29.09.2026: плитки узлов в первом экране, схема свёрнута, тумблеры только у optional. -->\n'
             + css + '\n' + b + '\n<script>\n' + demos + '\n' + js + '\n' + a + '\n</script>\n')
 
 for q, n in [(55, len(picked)), (50, len(picked)), (45, len(picked)), (45, 10)]:

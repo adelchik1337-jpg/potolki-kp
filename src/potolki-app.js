@@ -84,7 +84,10 @@ function normItems(list){
     if(it.qty && typeof it.qty === 'object'){ for(var k in it.qty) if(Object.prototype.hasOwnProperty.call(it.qty, k)) q[String(k)] = Math.max(0, numOf(it.qty[k])); }
     else q['Общая'] = Math.max(0, numOf(it.qty));
     if(!Object.keys(q).length) q['Общая'] = 0;
-    return { name:String(it.name == null ? '' : it.name).trim() || 'Позиция', unit:normUnit(it.unit), price:numOf(it.price), q:q, optional:it.optional === true };
+    /* фото узла у позиции каталога OpMax: по контракту {url}, строку тоже примем; нет — плитка возьмёт библиотеку или пиктограмму */
+    var im = it.image && typeof it.image === 'object' ? it.image.url : it.image;
+    return { name:String(it.name == null ? '' : it.name).trim() || 'Позиция', unit:normUnit(it.unit), price:numOf(it.price), q:q, optional:it.optional === true,
+             image:typeof im === 'string' && im.trim() ? im.trim() : null };
   });
 }
 function normEstimate(cfg){
@@ -109,7 +112,7 @@ function load(){
   ITEMS = itemsOf(vi).map(function(it, i){
     var c = classify(it.name), q = {};
     for(var k in it.q){ q[k] = it.q[k]; if(roomSet.indexOf(k) < 0) roomSet.push(k); }
-    return { i:i, name:it.name, unit:it.unit, price:it.price, q:q, q0:JSON.stringify(q), on:!it.optional, on0:!it.optional, opt:it.optional,
+    return { i:i, name:it.name, unit:it.unit, price:it.price, q:q, q0:JSON.stringify(q), on:!it.optional, on0:!it.optional, opt:it.optional, image:it.image,
              cat:c.cat, role:c.role, brand:c.brand, width:c.width, isCount: it.unit === 'шт' };
   });
   ROOMS = roomSet.map(function(nm){ return { n:nm, on:true }; });
@@ -150,6 +153,7 @@ function flags(){
   f.system = bl > 0 ? best : 'standard';
   f.systems = Object.keys(sysLen).filter(function(k){ return sysLen[k] > 0; });
   if(!f.systems.length) f.systems = ['standard'];
+  f.sysLen = sysLen;   /* метраж каждой системы: плитки примыкания в первом экране идут по его убыванию */
   return f;
 }
 
@@ -272,7 +276,7 @@ function renderVars(){
    Контакты — у каждого менеджера свои: KP_CONFIG.contacts, те же поля, что у блока «Контакты» в OpMax. */
 var LAYOUT = window.DEMO_PROFILE || {};
 var TAG_RX = { shadow:/тенев/, float:/парящ/, seamless:/бесщел/, line:/лини/, track:/трек/, cornice:/карниз|штор|ниш/, led:/подсвет|засвет|контур/,
-  spot:/точечн|светильник|спот/, chandelier:/люстр/, gloss:/глянц/, satin:/сатин/, matte:/матов/ };
+  spot:/точечн|светильник|спот/, chandelier:/люстр/, insert:/вставк/, gloss:/глянц/, satin:/сатин/, matte:/матов/ };
 var TAG_RU = { shadow:'теневой профиль', float:'парящий потолок', seamless:'бесщелевое примыкание', line:'световые линии', track:'трек',
   cornice:'ниша под шторы', led:'подсветка', spot:'точечный свет', chandelier:'люстра' };
 function tagsOf(name){ var n = String(name || '').toLowerCase(), t = []; for(var k in TAG_RX) if(TAG_RX[k].test(n)) t.push(k); return t; }
@@ -340,7 +344,7 @@ function pickPhotos(lib, want, n){
   var rest = all.filter(function(x){ return used.indexOf(x) < 0; }).sort(function(a, b){ return score(b) - score(a) || fit(b) - fit(a); });
   return { list:used, hit:hit, gallery:used.concat(rest) };
 }
-var GAL = [], gi = 0;
+var GAL = [], gi = 0, LB = GAL;   /* LB — что листает лайтбокс сейчас: «Объекты» (GAL) или плитки узлов (NODE_GAL) */
 function listRu(a){ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' и ' + a[a.length - 1]; }
 var ICO_PLAY = '<svg viewBox="0 0 14 14"><path d="M3 1.5v11l9-5.5z" fill="#fff"/></svg>', ICO_PAUSE = '<svg viewBox="0 0 14 14"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="#fff"/></svg>';
 function renderPhotos(){
@@ -382,11 +386,14 @@ function tglVid(){ var v = document.getElementById('objVid'), b = document.getEl
   if(v.paused){ v.dataset.user = ''; v.play().catch(function(){}); b.innerHTML = ICO_PAUSE; b.setAttribute('aria-label', 'Пауза'); }
   else { v.dataset.user = '1'; v.pause(); b.innerHTML = ICO_PLAY; b.setAttribute('aria-label', 'Смотреть'); } }
 /* лайтбокс: стрелки, Esc, свайп */
-function showLb(){ var p = GAL[gi]; if(!p) return; document.getElementById('lbImg').src = p.src; document.getElementById('lbImg').alt = p.cap || '';
-  document.getElementById('lbCap').innerHTML = esc(p.cap || '') + '<small>' + (gi + 1) + ' из ' + GAL.length + '</small>'; }
-function openLb(k){ if(!GAL.length) return; gi = clamp(k, 0, GAL.length - 1); showLb(); document.getElementById('lb').hidden = false; document.body.style.overflow = 'hidden'; }
+function showLb(){ var p = LB[gi]; if(!p) return; document.getElementById('lbImg').src = p.src; document.getElementById('lbImg').alt = p.cap || '';
+  document.getElementById('lbCap').innerHTML = esc(p.cap || '') + '<small>' + (gi + 1) + ' из ' + LB.length + '</small>'; }
+/* открытый из «Объектов» лайтбокс листает только объекты, открытый с плитки узла — только узлы: списки не смешиваем */
+function openLb(k){ LB = GAL; openAt(k); }
+function openNode(k){ LB = NODE_GAL; openAt(k); }
+function openAt(k){ if(!LB.length) return; gi = clamp(k, 0, LB.length - 1); showLb(); document.getElementById('lb').hidden = false; document.body.style.overflow = 'hidden'; }
 function closeLb(){ document.getElementById('lb').hidden = true; document.body.style.overflow = ''; }
-function stepLb(d){ if(!GAL.length) return; gi = (gi + d + GAL.length) % GAL.length; showLb(); }
+function stepLb(d){ if(!LB.length) return; gi = (gi + d + LB.length) % LB.length; showLb(); }
 document.addEventListener('keydown', function(e){ if(document.getElementById('lb').hidden) return;
   if(e.key === 'Escape') closeLb(); if(e.key === 'ArrowLeft') stepLb(-1); if(e.key === 'ArrowRight') stepLb(1); });
 /* PDF на платформе делается печатью страницы — перед печатью догружаем всё ленивое */
@@ -468,9 +475,66 @@ function renderPeople(){
   if(co.name && !CFG) document.title = kpLabel() + ' · ' + co.name;
 }
 
+
+/* ============ 4в. ПЛИТКИ УЗЛОВ В ПЕРВОМ ЭКРАНЕ ============
+   Клиент на телефоне видит не разрез с цифрами, а фото того, что есть в его смете: примыкание, свет, ниша.
+   Плитки строятся из тех же flags(), что и разрез; полотно и углы плитки не получают. Фото — по цепочке:
+   своё у позиции каталога (KP_CONFIG.items[].image) → библиотека компании по тегу → пиктограмма и название узла. */
+var CUT = {
+    standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
+    shadow:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 36 H40 V74 H30 V50 H22 V74 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M40 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M40 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="50" width="8" height="12" fill="#1D1D1F"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">тёмный зазор 6 мм вместо вставки</text></svg>',
+    seamless:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 42 H34 V70 H26 V52 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M14 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M14 56 H400" stroke="#FFFFFF" stroke-width="3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">полотно вплотную к стене, без щели</text></svg>',
+    float:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 32 H44 V78 H36 V48 H22 V78 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="24" y="50" width="10" height="5" fill="#FFB454"/><path d="M44 60 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M44 60 H400" stroke="#FFFFFF" stroke-width="3"/><path d="M22 56 L14 110" stroke="#FFB454" stroke-width="10" opacity=".35"/><text x="60" y="94" font-size="10" font-family="inherit" fill="#0071E3">лента за полотном, свет стекает по стене</text></svg>' };
+var NODE_LABEL = { standard:'Профиль со вставкой', shadow:'Теневое примыкание', float:'Парящий профиль', seamless:'Бесщелевое примыкание',
+  spot:'Точечный свет', chandelier:'Люстра', track:'Трек', line:'Световая линия', led:'LED-подсветка', cornice:'Ниша под шторы' };
+/* какие роли строк сметы отвечают за плитку: у неё берём своё фото позиции, если оно есть */
+var NODE_ROLES = { standard:['standard','molding'], shadow:['shadow'], float:['float'], seamless:['seamless','seamless-canvas'],
+  spot:['spot','fixture','spot-install'], chandelier:['chandelier','chandelier-install'], track:['track'], line:['line'], led:['led'], cornice:['cornice'] };
+/* пиктограммы для плитки без фото — в языке разрезов CUT: плита, полотно, узел; для примыканий берём сам CUT */
+var NODE_ICO = {
+  spot:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="178" y="22" width="44" height="32" fill="#48484A"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="170" y="52" width="60" height="9" rx="2" fill="#D2D2D7" stroke="#1D1D1F"/><path d="M200 64 L176 104 M200 64 L224 104" stroke="#FFB454" stroke-width="18" opacity=".28" stroke-linecap="round"/></svg>',
+  chandelier:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="186" y="22" width="28" height="30" fill="#A68A64"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="180" y="50" width="40" height="9" rx="2" fill="#D2D2D7" stroke="#1D1D1F"/><path d="M200 59 v20" stroke="#1D1D1F" stroke-width="2"/><path d="M172 79 Q200 108 228 79 Z" fill="#FFFFFF" stroke="#1D1D1F"/></svg>',
+  track:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="150" y="22" width="100" height="32" fill="#3A3A3C"/><path d="M0 56 H150 M250 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H150 M250 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="148" y="53" width="104" height="7" fill="#1D1D1F"/><rect x="192" y="60" width="16" height="22" rx="3" fill="#48484A"/><path d="M200 82 L186 106 M200 82 L214 106" stroke="#FFB454" stroke-width="12" opacity=".25" stroke-linecap="round"/></svg>',
+  line:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="160" y="22" width="80" height="32" fill="#48484A"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="158" y="52" width="84" height="8" fill="#FFF9EC" stroke="#1D1D1F"/><path d="M170 64 L160 104 M230 64 L240 104" stroke="#FFB454" stroke-width="14" opacity=".22" stroke-linecap="round"/></svg>',
+  led:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="120" y="22" width="160" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="132" y="42" width="136" height="6" fill="#FFB454"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><path d="M200 62 v42" stroke="#FFB454" stroke-width="150" opacity=".16"/></svg>',
+  cornice:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="386" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M0 56 H250" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H250" stroke="#FFFFFF" stroke-width="3"/><path d="M250 38 H386 V74 H348 V52 H250 Z" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="256" y="52" width="86" height="10" fill="#3A3A3C"/><rect x="348" y="74" width="38" height="36" fill="#2C3E5A"/></svg>' };
+/* список плиток в порядке, как называл Павел: примыкание (каждая система, по убыванию метража) → точечный свет → люстра →
+   трек → световая линия → подсветка → ниша под шторы. Потолка по числу нет: у «двух вариантов» бывает 7 */
+function heroNodes(F){
+  var keys = F.systems.slice().sort(function(a, b){ return (F.sysLen[b] || 0) - (F.sysLen[a] || 0); });
+  if(F.spots) keys.push('spot'); if(F.chand) keys.push('chandelier'); if(F.track) keys.push('track');
+  if(F.lines) keys.push('line'); if(F.led) keys.push('led'); if(F.cornice) keys.push('cornice');
+  return keys.map(function(k){ return { key:k, tag:k === 'standard' ? 'insert' : k, label:NODE_LABEL[k] }; });
+}
+/* фото плитки: (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
+   и ещё не занятое другой плиткой; если «чистого» фото нет — с наименьшим числом чужих (как «Объекты» добирают остаток), (3) null */
+function nodePhoto(n, want, lib, taken){
+  var own = ITEMS.filter(function(it){ return it.on && NODE_ROLES[n.key].indexOf(it.role) >= 0 && it.image; })[0];
+  if(own) return { src:own.image };
+  var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
+  var c = lib.filter(function(x){ return x && x.src && taken.indexOf(x.src) < 0 && (x.tags || []).indexOf(n.tag) >= 0; })
+    .sort(function(a, b){ return miss(a) - miss(b) || (b.score || 0) - (a.score || 0); })[0];
+  return c ? { src:c.src } : null;
+}
+var NODE_GAL = [];
+function renderNodes(){
+  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '';
+  NODE_GAL = [];
+  heroNodes(F).forEach(function(n){
+    var p = nodePhoto(n, want, lib, taken);
+    if(p){ taken.push(p.src);
+      html += '<button type="button" class="ph2" data-act="openNode" data-arg="' + NODE_GAL.length + '" aria-label="' + esc(n.label) + ' — открыть фото"><img src="' + esc(p.src) + '" alt=""><div class="cap">' + esc(n.label) + '</div></button>';
+      NODE_GAL.push({ src:p.src, cap:n.label }); }
+    /* заглушка — не кнопка, открывать нечего; у CUT убираем подпись 10px — на плитке 150px она нечитаема, название узла есть в .cap */
+    else html += '<div class="ph2 ico">' + (CUT[n.key] ? CUT[n.key].replace(/<text[\s\S]*?<\/text>/g, '') : NODE_ICO[n.key] || '') + '<div class="cap">' + esc(n.label) + '</div></div>';
+  });
+  document.getElementById('nodes').innerHTML = html;
+}
+
 /* ============ 5. ПАНЕЛЬ И СМЕТА ============ */
-function tglItem(i){ var it = ITEMS[i]; if(!it) return; it.on = !it.on; track('quote_toggle', { item:it.name, on:it.on }); renderAll(); }
-function stepItem(i, d){ var it = ITEMS[i]; if(!it || !d) return; var k = Object.keys(it.q)[0]; it.q[k] = clamp(Math.round((it.q[k] + d) * 100) / 100, 0, 200); it.on = it.q[k] > 0; track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll(); }
+/* выключить или обнулить можно только позицию «по желанию»: остальное входит в систему потолка (нижняя граница счёта — 1) */
+function tglItem(i){ var it = ITEMS[i]; if(!it || !it.opt) return; it.on = !it.on; track('quote_toggle', { item:it.name, on:it.on }); renderAll(); }
+function stepItem(i, d){ var it = ITEMS[i]; if(!it || !d) return; var k = Object.keys(it.q)[0]; it.q[k] = clamp(Math.round((it.q[k] + d) * 100) / 100, it.opt ? 0 : 1, 200); it.on = it.q[k] > 0; track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll(); }
 
 function renderItems(){
   var html = '';
@@ -482,7 +546,8 @@ function renderItems(){
       var q = qty(it), single = Object.keys(it.q).length === 1, step = it.isCount && single;
       html += '<div class="it' + (it.on ? '' : ' off') + '"><span class="itx">' + esc(it.name) + '<small>' + (it.opt ? 'по желанию · ' : '') + (step ? '' : fq2(q) + ' ' + esc(unitLabel(it.unit)) + ' × ') + moneyP(it.price) + (step ? ' за шт' : '') + '</small></span>'
         + (step ? '<span class="sb"><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="-1" aria-label="Меньше">−</button><span>' + fq2(q) + '</span><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="1" aria-label="Больше">+</button></span>' : '')
-        + '<span class="itp">' + money(lineSum(it)) + '</span><button type="button" class="sw" data-act="tglItem" data-arg="' + it.i + '" role="switch" aria-checked="' + it.on + '" aria-label="' + esc(shortName(it)) + ' — в смете"></button></div>';
+        + '<span class="itp">' + money(lineSum(it)) + '</span>'
+        + (it.opt ? '<button type="button" class="sw" data-act="tglItem" data-arg="' + it.i + '" role="switch" aria-checked="' + it.on + '" aria-label="' + esc(shortName(it)) + ' — в смете"></button>' : '') + '</div>';
     });
     html += '</div>';
   });
@@ -505,16 +570,11 @@ function renderSum(){
   document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '.' + (DATA.until ? ' Цена действительна до ' + DATA.until + '.' : '');
   /* шапка */
   document.getElementById('h1').innerHTML = 'Натяжной потолок' + (F.area ? ' <span style="white-space:nowrap">' + fq2(F.area) + '&nbsp;м²</span>' : '');
-  document.getElementById('hsub').innerHTML = '<b>' + F.brand + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
+  document.getElementById('hsub').innerHTML = '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
     + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + ' света' : '') + (F.chand ? ' · ' + plural(Math.round(F.chand), 'точка', 'точки', 'точек') + ' под люстру' : '')
     + (F.lines ? ' · световые линии ' + fq2(F.lines) + ' м' : '') + (F.track ? ' · трек ' + fq2(F.track) + ' м' : '') + (F.cornice ? ' · ниша под шторы' : '')
     + (d ? ' · скидка ' + fq2(DATA.discount) + ' %' : '');
   /* что важно знать: примыкание и высота */
-  var CUT = {
-    standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
-    shadow:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 36 H40 V74 H30 V50 H22 V74 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M40 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M40 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="50" width="8" height="12" fill="#1D1D1F"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">тёмный зазор 6 мм вместо вставки</text></svg>',
-    seamless:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 42 H34 V70 H26 V52 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M14 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M14 56 H400" stroke="#FFFFFF" stroke-width="3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">полотно вплотную к стене, без щели</text></svg>',
-    float:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 32 H44 V78 H36 V48 H22 V78 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="24" y="50" width="10" height="5" fill="#FFB454"/><path d="M44 60 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M44 60 H400" stroke="#FFFFFF" stroke-width="3"/><path d="M22 56 L14 110" stroke="#FFB454" stroke-width="10" opacity=".35"/><text x="60" y="94" font-size="10" font-family="inherit" fill="#0071E3">лента за полотном, свет стекает по стене</text></svg>' };
   var SYSP = { standard:'Профиль по периметру, щель у стены закрывает гибкая вставка в цвет потолка. Подходит для любых стен.',
                shadow:'Ровная тёмная щель у стены вместо вставки — потолок выглядит как гипсокартонный, но без швов и трещин. Нужны ровные стены.',
                seamless:'Полотно подходит к стене вплотную: ни щели, ни вставки. Самый чистый вид.',
@@ -531,7 +591,7 @@ function renderSum(){
 }
 /* каждый блок рисуется сам: сбой в одном (необычная строка сметы) не должен оставить без контактов и фото */
 function renderAll(){
-  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople] : [renderVars, renderItems, renderSum, buildCut, renderPhotos, renderPeople];
+  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople];
   list.forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
 }
 /* смета ещё пустая (черновик в OpMax): никаких цифр-примеров, только понятная заглушка в первом экране */
@@ -604,6 +664,8 @@ var ACT = {
   copyThen: function(){ copyText(approveText(), 'Сообщение скопировано — вставьте его в чат'); },
   copyMax: function(a){ copyText(a || '', 'Номер скопирован — найдите его в MAX', 'Номер для MAX: ' + (a || '')); },
   openLb: function(a){ openLb(parseInt(a, 10) || 0); },
+  openNode: function(a){ openNode(parseInt(a, 10) || 0); },
+  /* «Схема»: разрез свёрнут по умолчанию, состояние — в hidden тела и aria-expanded кнопки */
   closeLb: function(){ closeLb(); },
   stepLb: function(a){ stepLb(parseInt(a, 10) || 1); },
   go: function(a){ go(a); },
