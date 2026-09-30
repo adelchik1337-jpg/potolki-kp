@@ -14,7 +14,24 @@ LIMIT = 1_900_000  # байт: контракт спец-заказа — до 2
 def rd(f): return open(S + '/' + f, encoding='utf-8').read()
 css = rd('potolki-css.txt'); b = rd('potolki-body.html')
 d = rd('potolki-data.js'); pr = rd('potolki-profile.js'); a = rd('potolki-app.js')
+# оффер продавца — фрагмент внутри функции-обёртки app.js (отдельный файл, чтобы app.js не рос): маркер ровно один
+assert a.count('/* __OFFER_JS__') == 1, 'potolki-app.js: нужен ровно один маркер /* __OFFER_JS__ */'
+a = re.sub(r'/\* __OFFER_JS__[^\n]*\*/', lambda m: rd('potolki-offer.js').rstrip(), a)
 mark = rd('mark.svg')
+
+# узлы плиток для метки data-kp-nodes (редактор OpMax «Фото узлов»): единственный источник — NODE_LABEL в potolki-app.js,
+# в potolki-body.html только заглушка; заодно ловим расхождение NODE_LABEL ↔ NODE_ROLES (у плитки без роли не найти фото позиции)
+def node_pairs(js):
+    lab = re.search(r"var NODE_LABEL = \{(.*?)\};", js, re.S); rol = re.search(r"var NODE_ROLES = \{(.*?)\};", js, re.S)
+    assert lab and rol, 'potolki-app.js: не нашёл NODE_LABEL / NODE_ROLES'
+    pairs = re.findall(r"(\w+):'([^']*)'", lab.group(1)); roles = re.findall(r"(\w+):\[", rol.group(1))
+    assert pairs and sorted(k for k, _ in pairs) == sorted(roles), 'NODE_LABEL и NODE_ROLES разошлись: %r vs %r' % ([k for k, _ in pairs], roles)
+    return pairs
+NODE_PAIRS = node_pairs(a)
+NODES_JSON = json.dumps([{'key': k, 'label': v} for k, v in NODE_PAIRS], ensure_ascii=False, separators=(',', ':'))
+assert not re.search(r"['<>&]", NODES_JSON), 'подписи узлов: кавычка, скобка или & сломают атрибут data-kp-nodes'
+assert b.count("data-kp-nodes='__KP_NODES__'") == 1, 'potolki-body.html: нужна ровно одна заглушка data-kp-nodes=\'__KP_NODES__\''
+b = b.replace("data-kp-nodes='__KP_NODES__'", "data-kp-nodes='" + NODES_JSON + "'")
 
 def check(html, name, platform):
     """Строгая CSP платформы: ни одного on*-атрибута и javascript:-ссылки; разметка блоков для тепловой карты."""
@@ -25,6 +42,11 @@ def check(html, name, platform):
     assert len(blocks) >= 5 and len(set(blocks)) == len(blocks) and all(x.strip() for x in blocks), name + ': data-kp-block ' + str(blocks)
     assert html.count('<script') == 1, name + ': «<script» внутри кода сломает подпись nonce на платформе'
     assert not re.search(r'setDate\s*\(\s*\w+\.getDate\s*\(\s*\)\s*\+', html), name + ': срок от «сегодня»'
+    assert re.search(r"<[a-z][^<>]*\sdata-kp-offer[\s>]", html) and '__OFFER_JS__' not in html, name + ': метка data-kp-offer или невставленный фрагмент оффера'
+    # метка узлов: одна, внутри тега, валидный JSON, ключи и порядок — как в NODE_LABEL (lib/estimate.ts читает её так же)
+    nodes = re.findall(r"<[a-z][^<>]*\sdata-kp-nodes='(\[[^']*\])'[^<>]*>", html)
+    assert len(nodes) == 1 and '__KP_NODES__' not in html, name + ': метка data-kp-nodes ' + str(len(nodes))
+    assert [(x['key'], x['label']) for x in json.loads(nodes[0])] == NODE_PAIRS, name + ': data-kp-nodes не совпадает с NODE_LABEL'
     if platform:
         assert '{{' not in html, name + ': «{{» — платформа подставляет переменные'
         assert not re.search(r'<(head|body|title|meta|link)[\s>/]', html, re.I), name + ': обвязка документа — на платформе её вырезают'
@@ -44,7 +66,7 @@ check(html, 'index.html', False)
 open(O + '/index.html', 'w', encoding='utf-8').write(html)
 if not IN_SRC:
     os.makedirs(O + '/src', exist_ok=True)
-    for f in ['potolki-css.txt', 'potolki-body.html', 'potolki-data.js', 'potolki-profile.js', 'potolki-app.js', 'build.py', 'mark.svg']:
+    for f in ['potolki-css.txt', 'potolki-body.html', 'potolki-data.js', 'potolki-profile.js', 'potolki-app.js', 'potolki-offer.js', 'build.py', 'mark.svg']:
         shutil.copy(S + '/' + f, O + '/src/' + f)
 print('index.html', len(html) // 1024, 'KB')
 
@@ -98,7 +120,8 @@ def build(q_photo, n_photos):
           'var DEMO_PROFILE = ' + json.dumps(p2, ensure_ascii=False) + ';')
     return ('<!-- «Высокий уровень» (Новороссийск) — КП на натяжной потолок. Макет спец-заказа OpMax, собран build.py '
             'из исходников potolki-*; руками не править. Смета, номер, сроки, контакты и медиа — из window.KP_CONFIG. '
-            'v2 29.09.2026: плитки узлов в первом экране, схема свёрнута, тумблеры только у optional. -->\n'
+            'v2 29.09.2026: плитки узлов в первом экране, схема свёрнута, тумблеры только у optional. '
+            'v3 30.09.2026: оффер продавца из KP_CONFIG.offer (метка data-kp-offer). -->\n'
             + css + '\n' + b + '\n<script>\n' + demos + '\n' + js + '\n' + a + '\n</script>\n')
 
 for q, n in [(55, len(picked)), (50, len(picked)), (45, len(picked)), (45, 10)]:

@@ -142,7 +142,7 @@ body.editmode .edit{display:block}
 .hrow{display:block}
 .price{font-size:clamp(40px,6.4vw,80px);font-weight:600;letter-spacing:-.9px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:18px}
 .price small{display:block;font-size:14px;font-weight:500;color:var(--mut);letter-spacing:-.224px;margin-bottom:6px}
-.hsub{margin-top:12px;font-size:17px;color:var(--mut);line-height:1.47;letter-spacing:-.374px}
+.hsub{margin-top:12px;font-size:17px;color:var(--mut);line-height:1.47;letter-spacing:-.374px;text-wrap:balance}   /* результат из оффера: без висячего «с» и вдовы в конце */
 .hsub b{color:var(--ink);font-weight:500}
 .cut{position:relative;background:var(--surf);border-radius:var(--r-lg);padding:22px 22px 14px;margin-top:28px;overflow:hidden}
 .cut svg{width:100%;height:auto;display:block}
@@ -255,6 +255,20 @@ body.noest .needest{display:none!important}
   font-size:clamp(17px,2vw,21px);font-weight:500;letter-spacing:-.3px;line-height:1.35;color:var(--ink2)}
 .empty small{display:block;margin-top:6px;font-size:14px;font-weight:400;color:var(--mut);letter-spacing:-.2px}
 body.noest .empty{display:block}
+/* оффер продавца (KP_CONFIG.offer): полоса загрузки продолжает «Цена действительна до» и не печатается; плашки «что входит»;
+   бонусы под итогом — зелёные, как подтверждение «согласовано»; строка гарантии — над кнопкой «Согласовать», у точки решения */
+body:not(.noest) #hValid:not([hidden])+.capline{padding-top:0}
+@media print{.capline{display:none!important}}
+.incl .incx{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:10px}
+.incl .incx span{background:var(--canvas);border-radius:980px;padding:5px 12px;color:var(--ink2);font-weight:500}
+.sum .bon{margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:#E9F7EE;font-size:14px;color:#1E7A3C;line-height:1.45;letter-spacing:-.2px}
+.sum .bon b{display:block;font-weight:600}
+.sum .bon span{display:block;margin-top:3px}
+.sum .bon em{font-style:normal;white-space:nowrap}   /* цена бонуса не рвётся на «(1 / 500 ₽)» на телефоне */
+.acb .gline{font-size:15px;color:var(--ink);font-weight:500;letter-spacing:-.2px;text-wrap:balance}
+.know.k3{grid-template-columns:1.4fr 1fr 1fr}   /* «Гарантии нет»: карточки гарантии нет — три колонки без дыры справа */
+@media(max-width:980px){.know.k3{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.know.k3{grid-template-columns:1fr}}
 </style>
 
 <header class="top">
@@ -394,7 +408,8 @@ body.noest .empty{display:block}
   <button type="button" data-act="go" data-arg="accept">Согласовать</button>
 </div>
 <div class="toast" id="toastEl" role="status" aria-live="polite"></div>
-<div hidden data-kp-estimate data-kp-contacts></div>
+<!-- data-kp-nodes — узлы плиток для секции «Фото узлов» в редакторе OpMax; список подставляет build.py из NODE_LABEL (potolki-app.js), руками не править -->
+<div hidden data-kp-estimate data-kp-contacts data-kp-offer data-kp-nodes='[{"key":"standard","label":"Профиль со вставкой"},{"key":"shadow","label":"Теневое примыкание"},{"key":"float","label":"Парящий профиль"},{"key":"seamless","label":"Бесщелевое примыкание"},{"key":"spot","label":"Точечный свет"},{"key":"chandelier","label":"Люстра"},{"key":"track","label":"Трек"},{"key":"line","label":"Световая линия"},{"key":"led","label":"LED-подсветка"},{"key":"cornice","label":"Ниша под шторы"}]'></div>
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Фото объектов">
   <button type="button" class="x" data-act="closeLb" aria-label="Закрыть">×</button>
   <button type="button" class="pv" data-act="stepLb" data-arg="-1" aria-label="Предыдущее">‹</button>
@@ -620,6 +635,16 @@ function normItems(list){
              image:typeof im === 'string' && im.trim() ? im.trim() : null };
   });
 }
+/* фото узлов ЭТОГО КП (KP_CONFIG.nodePhotos из секции «Фото узлов» редактора OpMax): {ключ узла: {url}} — берём только строки url,
+   строку вместо {url} тоже примем, как у items[].image; всё остальное молча пропускаем */
+function normNodePhotos(np){
+  var o = {}; if(!np || typeof np !== 'object') return o;
+  for(var k in np) if(Object.prototype.hasOwnProperty.call(np, k)){
+    var v = np[k], u = v && typeof v === 'object' ? v.url : v;
+    if(typeof u === 'string' && u.trim()) o[String(k)] = u.trim();
+  }
+  return o;
+}
 function normEstimate(cfg){
   var vars = (Array.isArray(cfg.variants) ? cfg.variants : []).filter(function(v){ return v && Array.isArray(v.items) && v.items.length; })
     .map(function(v, k){ return { title:String(v.title || 'Вариант ' + (k + 1)), note:String(v.note || ''), items:normItems(v.items) }; });
@@ -815,8 +840,11 @@ function capOf(name){ var c = String(name || '').replace(/\.[a-z0-9]+$/i, '').re
 /* загрузки платформы → фото с тегами, видео, команда */
 function fromMedia(media){
   var o = { photos:[], video:null, team:null, poster:null };
+  /* фото узла этого КП уже стоит на плитке — в «Объектах» и как «команда»/«обложка» его не показываем (платформа тоже фильтрует, но не полагаемся) */
+  var np = DATA && DATA.nodePhotos || {}, mine = Object.keys(np).map(function(k){ return np[k]; });
   (media || []).forEach(function(m){
     if(!m || typeof m.url !== 'string') return;
+    if(mine.indexOf(m.url) >= 0) return;
     var n = String(m.name || '').toLowerCase(), mime = String(m.mime || '');
     if(m.kind === 'video' || mime.indexOf('video/') === 0){ if(!o.video && (tagsOf(n).length || /объект|работ/.test(n))) o.video = { src:m.url }; return; }
     if(mime && mime.indexOf('image/') !== 0) return;
@@ -895,7 +923,8 @@ function renderPhotos(){
     if(vid) setupVid();
   }
   var hit = r.hit.filter(function(t){ return TAG_RU[t]; }).slice(0, 4).map(function(t){ return TAG_RU[t]; });
-  document.getElementById('phLead').textContent = hit.length ? 'Наши объекты, где есть то же, что в вашей смете: ' + listRu(hit) + '.' : 'Несколько объектов, которые мы сделали.';
+  var pf = proofLead();   /* «120 объектов с 2015 года. » из оффера — перед прежней фразой */
+  document.getElementById('phLead').textContent = pf + (hit.length ? (pf ? 'Ниже — те, где есть то же, что в вашей смете: ' : 'Наши объекты, где есть то же, что в вашей смете: ') + listRu(hit) + '.' : pf ? 'Ниже — несколько из них.' : 'Несколько объектов, которые мы сделали.');
   var more = document.getElementById('phMore');
   more.hidden = GAL.length <= r.list.length; more.textContent = 'Все фото объектов · ' + GAL.length;
 }
@@ -1009,7 +1038,9 @@ function renderPeople(){
 /* ============ 4в. ПЛИТКИ УЗЛОВ В ПЕРВОМ ЭКРАНЕ ============
    Клиент на телефоне видит не разрез с цифрами, а фото того, что есть в его смете: примыкание, свет, ниша.
    Плитки строятся из тех же flags(), что и разрез; полотно и углы плитки не получают. Фото — по цепочке:
-   своё у позиции каталога (KP_CONFIG.items[].image) → библиотека компании по тегу → пиктограмма и название узла. */
+   своё у ЭТОГО КП (KP_CONFIG.nodePhotos, редактор OpMax) → своё у позиции каталога (KP_CONFIG.items[].image) →
+   библиотека компании по тегу → пиктограмма и название узла. Ключи узлов объявлены платформе меткой data-kp-nodes
+   (build.py собирает её из NODE_LABEL — при правке словаря ничего дописывать не надо). */
 var CUT = {
     standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
     shadow:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 36 H40 V74 H30 V50 H22 V74 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M40 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M40 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="50" width="8" height="12" fill="#1D1D1F"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">тёмный зазор 6 мм вместо вставки</text></svg>',
@@ -1036,9 +1067,11 @@ function heroNodes(F){
   if(F.lines) keys.push('line'); if(F.led) keys.push('led'); if(F.cornice) keys.push('cornice');
   return keys.map(function(k){ return { key:k, tag:k === 'standard' ? 'insert' : k, label:NODE_LABEL[k] }; });
 }
-/* фото плитки: (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
+/* фото плитки: (0) своё у ЭТОГО КП — продавец подставил его на плитку осознанно под этого клиента, оно конкретнее любого общего
+   источника; (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
    и ещё не занятое другой плиткой; если «чистого» фото нет — с наименьшим числом чужих (как «Объекты» добирают остаток), (3) null */
 function nodePhoto(n, want, lib, taken){
+  var mine = DATA.nodePhotos[n.key]; if(mine) return { src:mine };
   var own = ITEMS.filter(function(it){ return it.on && NODE_ROLES[n.key].indexOf(it.role) >= 0 && it.image; })[0];
   if(own) return { src:own.image };
   var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
@@ -1048,9 +1081,9 @@ function nodePhoto(n, want, lib, taken){
 }
 var NODE_GAL = [];
 function renderNodes(){
-  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '';
+  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '', nodes = heroNodes(F);
   NODE_GAL = [];
-  heroNodes(F).forEach(function(n){
+  nodes.forEach(function(n){
     var p = nodePhoto(n, want, lib, taken);
     if(p){ taken.push(p.src);
       html += '<button type="button" class="ph2" data-act="openNode" data-arg="' + NODE_GAL.length + '" aria-label="' + esc(n.label) + ' — открыть фото"><img src="' + esc(p.src) + '" alt=""><div class="cap">' + esc(n.label) + '</div></button>';
@@ -1059,6 +1092,77 @@ function renderNodes(){
     else html += '<div class="ph2 ico">' + (CUT[n.key] ? CUT[n.key].replace(/<text[\s\S]*?<\/text>/g, '') : NODE_ICO[n.key] || '') + '<div class="cap">' + esc(n.label) + '</div></div>';
   });
   document.getElementById('nodes').innerHTML = html;
+  tellNodes(nodes.map(function(n){ return n.key; }));
+}
+/* редактору OpMax («Фото узлов»): какие узлы сейчас в смете — помечает их «в смете». Только ключи, без данных клиента;
+   вне фрейма молчим. Адресат — свой origin (превью в кабинете); у file:// и «null» origin адреса нет — тогда '*', в сообщении всё равно одни ключи */
+function tellNodes(keys){
+  if(window.parent === window) return;
+  var o = String(window.location.origin || '');
+  try{ window.parent.postMessage({ type:'kp-nodes', keys:keys }, /^https?:\/\//.test(o) ? o : '*'); }catch(e){}
+}
+
+/* ============ 4г. ОФФЕР ПРОДАВЦА ============
+   Фрагмент potolki-app.js: build.py вставляет его на место маркера-комментария OFFER_JS внутри той же функции-обёртки
+   (отдельным файлом, чтобы app.js не рос). KP_CONFIG.offer платформа шлёт только макету с меткой data-kp-offer:
+   {outcome, included[], proof{since,objects,reviews}, guarantee{kind,term,text,clause}, bonuses[{name,value ₽}], capacity{text}}.
+   В разметке заранее ничего нет — без оффера страница остаётся прежней до байта; каждая часть рисуется только при
+   заполненном поле, заглушек нет. Куда что идёт: outcome → подзаголовок первого экрана; included → плашки после
+   «В цену входит»; proof.objects → лид «Объекты»; capacity → полоса под «Цена действительна до» (в печати скрыта);
+   guarantee → карточка в «Что важно знать» и одна строка у кнопки «Согласовать»; kind:'none' («Гарантии нет») → карточки гарантии и строки
+   у кнопки нет вовсе; bonuses → под итогом сметы. Строки приходят с сервера уже с типографикой (неразрывные пробелы) — кладём как есть. */
+var GAR_KINDS = ['contract','unconditional','conditional','anti'];   /* none обрабатывается отдельно (noGuarantee), незнакомый вид — молча выбрасываем */
+var NBSP = '\u00a0';
+function str(v){ return typeof v === 'string' ? v.trim() : typeof v === 'number' && isFinite(v) ? String(v) : ''; }
+/* для сравнения строк неразрывные пробелы сервера («за\u00a03 дня») приравниваем к обычным и сводим регистр */
+function plain(t){ return String(t).replace(/\u00a0/g, ' ').toLowerCase(); }
+/* берём известные ключи и только строки/числа, пустое и чужое молча выбрасываем; ключа нет или всё пусто → null.
+   «Как в договоре» без срока, текста и пункта — дефолт, а не заполнение (то же правило, что isOfferEmpty в lib/offer.ts) */
+function normOffer(o){
+  if(!o || typeof o !== 'object') return null;
+  var r = { outcome:str(o.outcome), included:[], proof:{}, guarantee:null, noGuarantee:false, bonuses:[], capacity:'' }, seen = {}, g = o.guarantee, p = o.proof, c = o.capacity;
+  (Array.isArray(o.included) ? o.included : []).forEach(function(s){ var t = str(s), k = plain(t); if(t && !seen[k] && r.included.length < 6){ seen[k] = 1; r.included.push(t); } });
+  if(p && typeof p === 'object') ['since','objects','reviews'].forEach(function(k){ var n = numOf(p[k]); if(n > 0) r.proof[k] = Math.round(n); });
+  if(g && typeof g === 'object' && g.kind === 'none') r.noGuarantee = true;   /* менеджер выбрал «Гарантии нет»: встроенная карточка «Договор» уходит */
+  else if(g && typeof g === 'object' && GAR_KINDS.indexOf(g.kind) >= 0){ g = { kind:g.kind, term:str(g.term), text:str(g.text), clause:str(g.clause) };
+    r.guarantee = g.kind !== 'contract' || g.term || g.text || g.clause ? g : null; }
+  (Array.isArray(o.bonuses) ? o.bonuses : []).forEach(function(b){ var n = b && typeof b === 'object' ? str(b.name) : '', v = n ? numOf(b.value) : 0;
+    if(n && v > 0 && r.bonuses.length < 3) r.bonuses.push({ name:n, value:v }); });
+  if(c && typeof c === 'object') r.capacity = str(c.text);
+  return r.outcome || r.included.length || Object.keys(r.proof).length || r.guarantee || r.noGuarantee || r.bonuses.length || r.capacity ? r : null;
+}
+/* одна строка гарантии — как guaranteeLine в lib/offer.ts (текст тот же, отличие только в неразрывных пробелах: тире не уезжает
+   в начало строки, «п. 5.2 договора» и «24 месяца» не рвутся): карточка, кнопка и блочное КП не разойдутся между собой */
+function guaranteeLine(g){
+  if(!g) return null;
+  if(g.kind === 'anti') return g.text ? 'Возврата нет' + NBSP + '— ' + g.text : null;   /* голое «возврата нет» отталкивает — без причины строки нет */
+  var head = g.term ? 'Гарантия ' + g.term.replace(/(\d) /g, '$1' + NBSP) : 'Гарантия';
+  if(g.clause){ var c = g.clause.replace(/^(п\.|пп\.|пункт) /i, '$1' + NBSP);
+    return head + NBSP + '— ' + (/договор/i.test(c) ? c : c + NBSP + 'договора'); }   /* «п. 5.2 договора» целиком — слово не дублируем */
+  return g.kind === 'contract' ? head + NBSP + '— как в' + NBSP + 'договоре' : head;
+}
+function outcomeHtml(){ var O = DATA.offer; return O && O.outcome ? '<b>' + esc(O.outcome) + '</b>' : ''; }
+/* строки «Что входит» из оффера — плашками после автоматического списка; то, что смета уже назвала, второй раз не пишем */
+function inclExtra(inc){ var O = DATA.offer, ext = O ? O.included.filter(function(s){ return inc.indexOf(plain(s)) < 0; }) : [];
+  return ext.length ? '<span class="incx">' + ext.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</span>' : ''; }
+/* «120 объектов с 2015 года. » — только объекты (и год, если есть): отзывов в этом макете нет, число не выдумываем */
+function proofLead(){ var P = DATA.offer && DATA.offer.proof; return P && P.objects ? plural(P.objects, 'объект', 'объекта', 'объектов') + (P.since ? ' с ' + P.since + ' года' : '') + '. ' : ''; }
+/* элемент оффера живёт, только пока есть поле: создаём при первом рендере, убираем, если поля нет — заглушек нет */
+function slot(id, want, make){ var el = document.getElementById(id); if(!want){ if(el) el.parentNode.removeChild(el); return null; } if(!el){ el = make(); el.id = id; } return el; }
+function renderOffer(){
+  var O = DATA.offer, g = O && O.guarantee, line = guaranteeLine(g), sum = 0;
+  var cap = slot('hCap', O && O.capacity, function(){ var d = document.createElement('div'), v = document.getElementById('hValid'); d.className = 'valid capline'; v.parentNode.insertBefore(d, v.nextSibling); return d; });
+  if(cap) cap.textContent = O.capacity;
+  /* карточку «Гарантия» ищем по заголовку, не по id — id в разметке изменил бы страницу без оффера. Крупно — срок (нет → «Договор»
+     остаётся), текст — из оффера (нет → прежний); у анти-гарантии текст — та же строка, что у кнопки, иначе причина без вопроса */
+  var card = (g || (O && O.noGuarantee)) && Array.prototype.filter.call(document.querySelectorAll('.know .k'), function(k){ var b = k.querySelector('b'); return b && b.textContent === 'Гарантия'; })[0];
+  if(card && O.noGuarantee){ var kn = card.parentNode; kn.removeChild(card); kn.classList.add('k3'); }   /* «Гарантии нет»: карточки нет, сетка из трёх колонок без дыры */
+  else if(card){ if(g.term && g.kind !== 'anti') card.querySelector('.kv').textContent = g.term; if(g.text) card.querySelector('p').textContent = g.kind === 'anti' ? line : g.text; }   /* у анти-гарантии срока в строке нет — крупное слово не подменяем */
+  var bon = slot('bon', O && O.bonuses.length, function(){ var d = document.createElement('div'), r = document.getElementById('sRows'); d.className = 'bon'; r.parentNode.insertBefore(d, r.nextSibling); return d; });
+  if(bon){ O.bonuses.forEach(function(b){ sum += b.value; });
+    bon.innerHTML = '<b>Бонусы на ' + moneyP(sum) + ' — без доплаты</b>' + O.bonuses.map(function(b){ return '<span>' + esc(b.name) + ' <em>(' + moneyP(b.value) + ')</em></span>'; }).join(''); }
+  var gl = slot('gLine', line, function(){ var d = document.createElement('small'), a = document.querySelector('#accept .acb'); d.className = 'gline'; a.insertBefore(d, a.firstChild); return d; });
+  if(gl) gl.textContent = line;
 }
 
 /* ============ 5. ПАНЕЛЬ И СМЕТА ============ */
@@ -1100,7 +1204,7 @@ function renderSum(){
   document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '.' + (DATA.until ? ' Цена действительна до ' + DATA.until + '.' : '');
   /* шапка */
   document.getElementById('h1').innerHTML = 'Натяжной потолок' + (F.area ? ' <span style="white-space:nowrap">' + fq2(F.area) + '&nbsp;м²</span>' : '');
-  document.getElementById('hsub').innerHTML = '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
+  document.getElementById('hsub').innerHTML = outcomeHtml() || '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
     + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + ' света' : '') + (F.chand ? ' · ' + plural(Math.round(F.chand), 'точка', 'точки', 'точек') + ' под люстру' : '')
     + (F.lines ? ' · световые линии ' + fq2(F.lines) + ' м' : '') + (F.track ? ' · трек ' + fq2(F.track) + ' м' : '') + (F.cornice ? ' · ниша под шторы' : '')
     + (d ? ' · скидка ' + fq2(DATA.discount) + ' %' : '');
@@ -1117,17 +1221,17 @@ function renderSum(){
   /* что входит */
   var inc = ['монтаж', 'закладные под свет'];
   if(cnt(['fixture']) > 0) inc.push('светильники с лампами'); else inc.push('вывоз обрезков и упаковки');
-  document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '');
+  document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '') + inclExtra(inc);
 }
 /* каждый блок рисуется сам: сбой в одном (необычная строка сметы) не должен оставить без контактов и фото */
 function renderAll(){
-  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople];
+  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople, renderOffer] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople, renderOffer];
   list.forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
 }
 /* смета ещё пустая (черновик в OpMax): никаких цифр-примеров, только понятная заглушка в первом экране */
 function renderEmpty(){
   document.getElementById('h1').textContent = 'Натяжной потолок';
-  document.getElementById('hsub').textContent = '';
+  document.getElementById('hsub').innerHTML = outcomeHtml();   /* результат из оффера виден и до появления сметы */
 }
 
 /* копирование: Clipboard API, а где он недоступен (фрейм, http) — через скрытое поле */
@@ -1229,7 +1333,7 @@ function boot(cfg, eyebrow){
   var est = normEstimate(cfg);
   DATA = { variants:est.variants, items:est.items, discount:clamp(numOf(cfg.discount), 0, 100),
            num:cfg.num == null ? '' : String(cfg.num).trim(), date:fmtDate(cfg.date), until:fmtDate(cfg.until),
-           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim() };
+           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim(), nodePhotos:normNodePhotos(cfg.nodePhotos), offer:normOffer(cfg.offer) };
   EMPTY = !DATA.variants && !DATA.items.length;
   document.body.classList.toggle('noest', EMPTY);
   vi = 0; load();
@@ -1243,7 +1347,7 @@ if(CFG && CFG.demo === true){
   /* предпросмотр макета в OpMax («Новое КП»): встроенная смета с пометкой «Пример», без чьих-либо контактов,
      номер и сроки — только если их прислала платформа */
   var smp = DEMOS.filter(function(x){ return x.key === 'gaiduk'; })[0] || DEMOS[0];
-  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until },
+  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until, offer:CFG.offer },
        'Пример сметы · натяжной потолок');
 }
 else if(CFG) boot(CFG);   /* смета из OpMax; без позиций — пустое состояние, без чужих цифр */

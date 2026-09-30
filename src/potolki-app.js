@@ -90,6 +90,16 @@ function normItems(list){
              image:typeof im === 'string' && im.trim() ? im.trim() : null };
   });
 }
+/* фото узлов ЭТОГО КП (KP_CONFIG.nodePhotos из секции «Фото узлов» редактора OpMax): {ключ узла: {url}} — берём только строки url,
+   строку вместо {url} тоже примем, как у items[].image; всё остальное молча пропускаем */
+function normNodePhotos(np){
+  var o = {}; if(!np || typeof np !== 'object') return o;
+  for(var k in np) if(Object.prototype.hasOwnProperty.call(np, k)){
+    var v = np[k], u = v && typeof v === 'object' ? v.url : v;
+    if(typeof u === 'string' && u.trim()) o[String(k)] = u.trim();
+  }
+  return o;
+}
 function normEstimate(cfg){
   var vars = (Array.isArray(cfg.variants) ? cfg.variants : []).filter(function(v){ return v && Array.isArray(v.items) && v.items.length; })
     .map(function(v, k){ return { title:String(v.title || 'Вариант ' + (k + 1)), note:String(v.note || ''), items:normItems(v.items) }; });
@@ -285,8 +295,11 @@ function capOf(name){ var c = String(name || '').replace(/\.[a-z0-9]+$/i, '').re
 /* загрузки платформы → фото с тегами, видео, команда */
 function fromMedia(media){
   var o = { photos:[], video:null, team:null, poster:null };
+  /* фото узла этого КП уже стоит на плитке — в «Объектах» и как «команда»/«обложка» его не показываем (платформа тоже фильтрует, но не полагаемся) */
+  var np = DATA && DATA.nodePhotos || {}, mine = Object.keys(np).map(function(k){ return np[k]; });
   (media || []).forEach(function(m){
     if(!m || typeof m.url !== 'string') return;
+    if(mine.indexOf(m.url) >= 0) return;
     var n = String(m.name || '').toLowerCase(), mime = String(m.mime || '');
     if(m.kind === 'video' || mime.indexOf('video/') === 0){ if(!o.video && (tagsOf(n).length || /объект|работ/.test(n))) o.video = { src:m.url }; return; }
     if(mime && mime.indexOf('image/') !== 0) return;
@@ -365,7 +378,8 @@ function renderPhotos(){
     if(vid) setupVid();
   }
   var hit = r.hit.filter(function(t){ return TAG_RU[t]; }).slice(0, 4).map(function(t){ return TAG_RU[t]; });
-  document.getElementById('phLead').textContent = hit.length ? 'Наши объекты, где есть то же, что в вашей смете: ' + listRu(hit) + '.' : 'Несколько объектов, которые мы сделали.';
+  var pf = proofLead();   /* «120 объектов с 2015 года. » из оффера — перед прежней фразой */
+  document.getElementById('phLead').textContent = pf + (hit.length ? (pf ? 'Ниже — те, где есть то же, что в вашей смете: ' : 'Наши объекты, где есть то же, что в вашей смете: ') + listRu(hit) + '.' : pf ? 'Ниже — несколько из них.' : 'Несколько объектов, которые мы сделали.');
   var more = document.getElementById('phMore');
   more.hidden = GAL.length <= r.list.length; more.textContent = 'Все фото объектов · ' + GAL.length;
 }
@@ -479,7 +493,9 @@ function renderPeople(){
 /* ============ 4в. ПЛИТКИ УЗЛОВ В ПЕРВОМ ЭКРАНЕ ============
    Клиент на телефоне видит не разрез с цифрами, а фото того, что есть в его смете: примыкание, свет, ниша.
    Плитки строятся из тех же flags(), что и разрез; полотно и углы плитки не получают. Фото — по цепочке:
-   своё у позиции каталога (KP_CONFIG.items[].image) → библиотека компании по тегу → пиктограмма и название узла. */
+   своё у ЭТОГО КП (KP_CONFIG.nodePhotos, редактор OpMax) → своё у позиции каталога (KP_CONFIG.items[].image) →
+   библиотека компании по тегу → пиктограмма и название узла. Ключи узлов объявлены платформе меткой data-kp-nodes
+   (build.py собирает её из NODE_LABEL — при правке словаря ничего дописывать не надо). */
 var CUT = {
     standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
     shadow:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 36 H40 V74 H30 V50 H22 V74 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M40 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M40 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="50" width="8" height="12" fill="#1D1D1F"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">тёмный зазор 6 мм вместо вставки</text></svg>',
@@ -506,9 +522,11 @@ function heroNodes(F){
   if(F.lines) keys.push('line'); if(F.led) keys.push('led'); if(F.cornice) keys.push('cornice');
   return keys.map(function(k){ return { key:k, tag:k === 'standard' ? 'insert' : k, label:NODE_LABEL[k] }; });
 }
-/* фото плитки: (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
+/* фото плитки: (0) своё у ЭТОГО КП — продавец подставил его на плитку осознанно под этого клиента, оно конкретнее любого общего
+   источника; (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
    и ещё не занятое другой плиткой; если «чистого» фото нет — с наименьшим числом чужих (как «Объекты» добирают остаток), (3) null */
 function nodePhoto(n, want, lib, taken){
+  var mine = DATA.nodePhotos[n.key]; if(mine) return { src:mine };
   var own = ITEMS.filter(function(it){ return it.on && NODE_ROLES[n.key].indexOf(it.role) >= 0 && it.image; })[0];
   if(own) return { src:own.image };
   var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
@@ -518,9 +536,9 @@ function nodePhoto(n, want, lib, taken){
 }
 var NODE_GAL = [];
 function renderNodes(){
-  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '';
+  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '', nodes = heroNodes(F);
   NODE_GAL = [];
-  heroNodes(F).forEach(function(n){
+  nodes.forEach(function(n){
     var p = nodePhoto(n, want, lib, taken);
     if(p){ taken.push(p.src);
       html += '<button type="button" class="ph2" data-act="openNode" data-arg="' + NODE_GAL.length + '" aria-label="' + esc(n.label) + ' — открыть фото"><img src="' + esc(p.src) + '" alt=""><div class="cap">' + esc(n.label) + '</div></button>';
@@ -529,7 +547,17 @@ function renderNodes(){
     else html += '<div class="ph2 ico">' + (CUT[n.key] ? CUT[n.key].replace(/<text[\s\S]*?<\/text>/g, '') : NODE_ICO[n.key] || '') + '<div class="cap">' + esc(n.label) + '</div></div>';
   });
   document.getElementById('nodes').innerHTML = html;
+  tellNodes(nodes.map(function(n){ return n.key; }));
 }
+/* редактору OpMax («Фото узлов»): какие узлы сейчас в смете — помечает их «в смете». Только ключи, без данных клиента;
+   вне фрейма молчим. Адресат — свой origin (превью в кабинете); у file:// и «null» origin адреса нет — тогда '*', в сообщении всё равно одни ключи */
+function tellNodes(keys){
+  if(window.parent === window) return;
+  var o = String(window.location.origin || '');
+  try{ window.parent.postMessage({ type:'kp-nodes', keys:keys }, /^https?:\/\//.test(o) ? o : '*'); }catch(e){}
+}
+
+/* __OFFER_JS__ — сюда build.py вставляет potolki-offer.js (оффер продавца: normOffer, guaranteeLine, renderOffer) */
 
 /* ============ 5. ПАНЕЛЬ И СМЕТА ============ */
 /* выключить или обнулить можно только позицию «по желанию»: остальное входит в систему потолка (нижняя граница счёта — 1) */
@@ -570,7 +598,7 @@ function renderSum(){
   document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '.' + (DATA.until ? ' Цена действительна до ' + DATA.until + '.' : '');
   /* шапка */
   document.getElementById('h1').innerHTML = 'Натяжной потолок' + (F.area ? ' <span style="white-space:nowrap">' + fq2(F.area) + '&nbsp;м²</span>' : '');
-  document.getElementById('hsub').innerHTML = '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
+  document.getElementById('hsub').innerHTML = outcomeHtml() || '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
     + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + ' света' : '') + (F.chand ? ' · ' + plural(Math.round(F.chand), 'точка', 'точки', 'точек') + ' под люстру' : '')
     + (F.lines ? ' · световые линии ' + fq2(F.lines) + ' м' : '') + (F.track ? ' · трек ' + fq2(F.track) + ' м' : '') + (F.cornice ? ' · ниша под шторы' : '')
     + (d ? ' · скидка ' + fq2(DATA.discount) + ' %' : '');
@@ -587,17 +615,17 @@ function renderSum(){
   /* что входит */
   var inc = ['монтаж', 'закладные под свет'];
   if(cnt(['fixture']) > 0) inc.push('светильники с лампами'); else inc.push('вывоз обрезков и упаковки');
-  document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '');
+  document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '') + inclExtra(inc);
 }
 /* каждый блок рисуется сам: сбой в одном (необычная строка сметы) не должен оставить без контактов и фото */
 function renderAll(){
-  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople];
+  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople, renderOffer] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople, renderOffer];
   list.forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
 }
 /* смета ещё пустая (черновик в OpMax): никаких цифр-примеров, только понятная заглушка в первом экране */
 function renderEmpty(){
   document.getElementById('h1').textContent = 'Натяжной потолок';
-  document.getElementById('hsub').textContent = '';
+  document.getElementById('hsub').innerHTML = outcomeHtml();   /* результат из оффера виден и до появления сметы */
 }
 
 /* копирование: Clipboard API, а где он недоступен (фрейм, http) — через скрытое поле */
@@ -699,7 +727,7 @@ function boot(cfg, eyebrow){
   var est = normEstimate(cfg);
   DATA = { variants:est.variants, items:est.items, discount:clamp(numOf(cfg.discount), 0, 100),
            num:cfg.num == null ? '' : String(cfg.num).trim(), date:fmtDate(cfg.date), until:fmtDate(cfg.until),
-           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim() };
+           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim(), nodePhotos:normNodePhotos(cfg.nodePhotos), offer:normOffer(cfg.offer) };
   EMPTY = !DATA.variants && !DATA.items.length;
   document.body.classList.toggle('noest', EMPTY);
   vi = 0; load();
@@ -713,7 +741,7 @@ if(CFG && CFG.demo === true){
   /* предпросмотр макета в OpMax («Новое КП»): встроенная смета с пометкой «Пример», без чьих-либо контактов,
      номер и сроки — только если их прислала платформа */
   var smp = DEMOS.filter(function(x){ return x.key === 'gaiduk'; })[0] || DEMOS[0];
-  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until },
+  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until, offer:CFG.offer },
        'Пример сметы · натяжной потолок');
 }
 else if(CFG) boot(CFG);   /* смета из OpMax; без позиций — пустое состояние, без чужих цифр */
