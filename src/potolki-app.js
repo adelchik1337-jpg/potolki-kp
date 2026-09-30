@@ -1,71 +1,57 @@
 (function(){
 "use strict";
-var RM = matchMedia('(prefers-reduced-motion: reduce)').matches, MOB = innerWidth < 600;
+var RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(RM) document.documentElement.classList.add('rm');
-if(MOB) document.documentElement.classList.add('mob');
 if(location.hash.indexOf('edit') >= 0) document.body.classList.add('editmode');
 
-/* ============ 1. КЛАССИФИКАТОР: имя строки из Excel → категория и визуальная роль ============ */
-function classify(name){
-  var n = name.toLowerCase().replace(/ё/g, 'е');
-  if(/полотно/.test(n)) return { cat:'canvas', role: /бесщелев/.test(n) ? 'seamless-canvas' : 'canvas',
-    brand: /bauf/.test(n) ? 'Bauf' : /halead/.test(n) ? 'Halead' : /teqtum/.test(n) ? 'Teqtum KM2'
-      : /msd/.test(n) && /classic/.test(n) ? 'MSD Classic' : /msd/.test(n) && /premium/.test(n) ? 'MSD Premium' : 'полотно',
-    width: /до 6/.test(n) ? 6 : /до 5/.test(n) ? 5 : 3.6 };
-  /* принадлежности световой линии и трека — отдельные строки, не метры линии */
-  if(/экран|поворот/.test(n) && /светов/.test(n)) return { cat:'light', role:'extra' };
-  /* углы теневого и парящего профиля считаются штуками — до проверки «парящ»/«тенев» */
-  if(/^угол\s|обработк\S* углов|углов\S* обработк/.test(n)) return { cat:'profile', role:'corners' };
-  if(/подсветка|светодиодн/.test(n)) return { cat:'light', role:'led' };
-  if(/светов\S* лини/.test(n)) return { cat:'light', role:'line' };
-  if(/трек/.test(n)) return { cat:'light', role:'track' };
-  if(/люстр/.test(n)) return { cat:'light', role: /установка/.test(n) ? 'chandelier-install' : 'chandelier' };
-  if(/точки освещения|точек освещения/.test(n)) return { cat:'light', role:'spot' };
-  if(/установка.*светильник|накладн\S* светильник|подвесн/.test(n)) return { cat:'light', role:'spot-install' };
-  if(/светильник|лампа/.test(n)) return { cat:'light', role:'fixture' };
-  if(/карниз|гардин|ниш/.test(n)) return { cat:'cornice', role:'cornice' };
-  if(/бесщелев/.test(n)) return { cat:'profile', role:'seamless' };
-  if(/парящ/.test(n)) return { cat:'profile', role:'float' };
-  if(/раздел|отсечн/.test(n)) return { cat:'profile', role:'divider' };
-  if(/теневой|kraab|бизон/.test(n)) return { cat:'profile', role:'shadow' };
-  if(/стеновой/.test(n)) return { cat:'profile', role:'standard' };
-  if(/молдинг|вставка/.test(n)) return { cat:'profile', role:'molding' };
-  if(/закладн/.test(n)) return { cat:'extra', role:'extra' };
-  return { cat:'extra', role:'extra' };
+/* ============ 0. ОБЩЕЕ: типографика, эскейп, секции страницы ============ */
+var NBSP = ' ', WJ = '\u2060';
+var MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+var SHORTW = /(^|[^A-Za-zА-Яа-яЁё0-9_])(в|во|на|с|со|к|ко|у|о|об|от|до|по|за|из|и|а|но|не|ни|для|при|без|над|под|про|или|же|бы|ли|то|да)\s+(?=\S)/gi;
+/* русская типографика динамических текстов (названия позиций, подписи): те же правила, что lib/typograf.ts — предлог и тире не повисают
+   в конце строки, число не отрывается от единицы. Статичный текст разметки обрабатывает build.py, строки оффера приходят уже набранными */
+function typo(s){
+  s = String(s == null ? '' : s).replace(/ — /g, NBSP + '— ');
+  for(var i = 0; i < 2; i++) s = s.replace(SHORTW, function(m, a, b){ return a + b + NBSP; });
+  return s.replace(/(\d) (?=\d{3}(?!\d))/g, '$1' + NBSP).replace(/(\d) (?=(?:₽|%|мм|м²|шт|г\.))/g, '$1' + NBSP)
+    .replace(/(\d) (?=[а-яё])/gi, '$1' + NBSP).replace(/№ (?=\d)/g, '№' + NBSP).replace(/(п\.) (?=\d)/g, '$1' + NBSP)
+    /* в каталоге бывает «до 3,6м», «(до 100мм)»: число и единица — через неразрывный пробел */
+    .replace(/(\d)(мм|см|м²|м)(?![A-Za-zА-Яа-яЁё0-9²])/g, '$1' + NBSP + '$2')
+    /* диапазон «1–2», «3–5» не рвётся на тире: соединитель слов по обе стороны */
+    .replace(/(\d)–(?=\d)/g, '$1' + WJ + '–' + WJ);
 }
-var CAT_NAME = { canvas:'Полотно', profile:'Примыкание к стене', light:'Свет', cornice:'Карнизы и шторы', extra:'Работы по объекту' };
-var CAT_ORDER = ['canvas','profile','light','cornice','extra'];
-var SYS_NAME = { standard:'стеновой профиль со вставкой', shadow:'теневой профиль', seamless:'бесщелевое примыкание', float:'парящий профиль' };
-var ROLE_DESC = {
-  canvas:'Полотно кроится под комнату с запасом, по краю приваривается кант.',
-  'seamless-canvas':'Полотно с особой кромкой для бесщелевого примыкания — считается за м² отдельно от самого полотна.',
-  led:'Лента и блок питания в пазу ниши: вечером свет идёт сверху по шторе.',
-  line:'Световая линия заподлицо с полотном: профиль монтируется в потолок, свет идёт полосой. Считается за метр.',
-  track:'Магнитная шина в потолке: светильники переставляются рукой без инструмента. Сами светильники — отдельно.',
-  chandelier:'Платформа и вывод провода под люстру; сама люстра ваша.',
-  'chandelier-install':'Повесить и подключить люстру, которую вы купили.',
-  spot:'Закладная платформа, термокольцо и вывод провода под каждый светильник.',
-  'spot-install':'Поставить и подключить сам светильник.',
-  fixture:'Светильник с лампой — в цену входит.',
-  cornice:'Ниша под шторы в потолке: карниз не виден, ткань идёт от самого потолка.',
-  seamless:'Полотно подходит к стене вплотную — ни щели, ни вставки.',
-  float:'Лента за полотном по периметру: свет стекает по стенам, потолок «парит».',
-  divider:'Профиль на стыке двух полотен — разного цвета, уровня или там, где комната длиннее рулона.',
-  shadow:'Ровная тёмная щель у стены вместо вставки. Нужны ровные стены.',
-  standard:'Профиль по периметру, в него заводится полотно.',
-  molding:'Гибкая вставка в цвет потолка закрывает щель у стены.',
-  corners:'Каждый угол теневого или парящего профиля запиливается и стыкуется вручную.',
-  extra:'Работа по особенностям объекта — уточняется на замере.'
-};
+function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function escT(t){ return esc(typo(t)); }
+function ic(n, x){ return '<i class="kp-i kp-i-' + n + (x ? ' ' + x : '') + '" aria-hidden="true"></i>'; }
+function plain1(t){ return String(t).replace(/\u2060/g, '').replace(/[  ]/g, ' '); }   /* текст для буфера обмена: обычные пробелы */
+/* секции страницы: разметка лежит в порядке макета, скрипт убирает пустые из DOM целиком (ни заголовка, ни зазора) и возвращает на своё место */
+var ORDER = ['offer-included','nodes','offer-proof','works','offer-guarantee','offer-bonus','terms','offer-capacity','smeta','accept','contacts'];
+var SEC = {}, KPW = document.querySelector('.kp-w'), FOOT = document.getElementById('foot');
+ORDER.forEach(function(n){ SEC[n] = KPW.querySelector('[data-kp-block=' + n + ']'); });
+/* элемент по id — и в документе, и внутри убранной секции */
+function el(id){ var e = document.getElementById(id); if(e) return e; for(var k in SEC) if(SEC[k]){ e = SEC[k].querySelector('#' + id); if(e) return e; } return null; }
+function setSec(name, on){
+  var s = SEC[name]; if(!s) return;
+  if(!on){ if(s.parentNode) s.parentNode.removeChild(s); return; }
+  if(s.parentNode) return;
+  var next = null;
+  for(var i = ORDER.indexOf(name) + 1; i < ORDER.length && !next; i++){ var n = SEC[ORDER[i]]; if(n && n.parentNode) next = n; }
+  KPW.insertBefore(s, next || FOOT);
+}
+
+/* __CLASSIFY_JS__ — сюда build.py вставляет potolki-classify.js (классификатор строк сметы: classify, CAT_NAME, SYS_NAME, ROLE_DESC) */
 
 /* ============ 2. ДАННЫЕ ============ */
 var CFG = window.KP_CONFIG && typeof window.KP_CONFIG === 'object' ? window.KP_CONFIG : null;
 var DATA, ITEMS = [], ROOMS = [], cur = 0, vi = 0, EMPTY = false;
-function plural(n, a, b, c){ var m = Math.abs(n) % 100, k = m % 10; return n + ' ' + (m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c); }
-function money(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; }
+function pluralW(n, a, b, c){ var m = Math.abs(n) % 100, k = m % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c; }
+function plural(n, a, b, c){ return n + NBSP + pluralW(n, a, b, c); }
+/* деньги: разряды через toLocaleString('ru-RU') и неразрывный пробел перед ₽ (число не отрывается от знака валюты) */
+function group(n){ return Math.round(n).toLocaleString('ru-RU').replace(/[\s\u202f]/g, NBSP); }
+function money(n){ var r = Math.round(n); return (r < 0 ? '−' : '') + group(Math.abs(r)) + NBSP + '₽'; }
 /* цена за единицу может прийти с копейками — показываем их, итоги — в рублях */
 function moneyP(n){ var k = Math.round(n * 100); if(k % 100 === 0) return money(k / 100);
-  var a = Math.abs(k), c = a % 100; return (k < 0 ? '−' : '') + Math.floor(a / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + (c < 10 ? '0' : '') + c + ' ₽'; }
+  var a = Math.abs(k), c = a % 100; return (k < 0 ? '−' : '') + group(Math.floor(a / 100)) + ',' + (c < 10 ? '0' : '') + c + NBSP + '₽'; }
 function fq2(n){ return (Math.round(n * 100) / 100).toString().replace('.', ','); }
 /* единицы из Excel и из каталога OpMax: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция */
 function normUnit(u){
@@ -114,7 +100,9 @@ function fmtDate(v){
   var d = new Date(s); if(isNaN(d.getTime())) return '';
   return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear();
 }
-function kpLabel(){ return DATA && DATA.num ? 'КП № ' + DATA.num : 'КП'; }
+/* срок цены в прошлом не показываем («цена действует до 24 сентября» при сегодняшнем 30-м читается как «цена устарела») */
+function isPast(v){ var p = dateParts(v); return !!p && new Date(p.y, p.m - 1, p.d + 1).getTime() <= Date.now(); }
+function kpLabel(){ return DATA && DATA.num ? 'КП' + NBSP + '№' + NBSP + DATA.num : 'КП'; }
 
 function itemsOf(k){ return DATA.variants ? DATA.variants[Math.min(k, DATA.variants.length - 1)].items : (DATA.items || []); }
 function load(){
@@ -132,7 +120,7 @@ function load(){
     var side = Math.sqrt(Math.max(area, 4));
     r.W = Math.min(6.5, Math.max(2.4, side * 1.15)); r.D = Math.min(5.5, Math.max(2.2, side * 0.9)); r.H = 2.7;
   });
-  cur = 0;
+  cur = 0; BUILT = false;   /* другой состав (вариант, новый конфиг) — строки сметы строим заново */
 }
 function qty(it, room){ var t = 0; for(var k in it.q) if(!room || k === room) t += it.q[k]; return t; }
 function sum(cat, room){ var t = 0; ITEMS.forEach(function(it){ if(it.on && it.cat === cat) t += qty(it, room); }); return t; }
@@ -167,479 +155,183 @@ function flags(){
   return f;
 }
 
-/* ============ 3. РАЗРЕЗ ИЗ СМЕТЫ ============ */
-var cutSvg = document.getElementById('cutSvg'), leg = document.getElementById('leg');
-function firstOf(roles){ return ITEMS.filter(function(it){ return it.on && roles.indexOf(it.role) >= 0; })[0]; }
-function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
-function shortName(it){
-  var n = it.name.replace(/\(китай\)|\(германия\)|, с монтажем|с монтажем|с установкой|в потолок натяжной|\(до 100мм\)|, в сборе со световым оборудованием/gi, '').replace(/\s+/g, ' ').replace(/,\s*$/, '').trim();
-  return n.length > 44 ? n.slice(0, 42) + '…' : n;
-}
-function buildCut(){
-  var F = flags(), s = '', L = [], n = 0;
-  var INK = '#1D1D1F', BLUE = '#0071E3', LED = '#FFB454', PROF = '#AEAEB2', SHEET = '#FFFFFF';
-  var Wv = 900, Hv = 300, slabH = 34, yS = 118;           /* yS — уровень полотна */
-  var hasCorn = F.cornice, xR = hasCorn ? 640 : Wv - 18;  /* правая граница полотна */
-  var canvas = firstOf(['canvas']), prof = firstOf(['standard','shadow','seamless','float']), mold = firstOf(['molding']);
-  var spot = firstOf(['spot','fixture','spot-install']), line = firstOf(['line']), track = firstOf(['track']), chand = firstOf(['chandelier']);
-  var corn = firstOf(['cornice']), led = firstOf(['led']), corners = firstOf(['corners']), seamC = firstOf(['seamless-canvas']);
-  function num(x, y){ n++; return '<circle cx="' + x + '" cy="' + y + '" r="10" fill="' + BLUE + '"/><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="inherit">' + n + '</text>'; }
-  function legend(it, extra){ L.push({ k:n, it:it, extra:extra }); }
-  function lead(x1, y1, x2, y2){ return '<path d="M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2 + '" stroke="' + BLUE + '" stroke-width="1" fill="none"/>'; }
-
-  /* фон, плита, стена */
-  s += '<defs><pattern id="hh" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8L8 0" stroke="#C7C7CC" stroke-width="1"/></pattern></defs>';
-  s += '<rect x="0" y="0" width="' + Wv + '" height="' + slabH + '" fill="#E8E8ED"/><rect x="0" y="0" width="' + Wv + '" height="' + slabH + '" fill="url(#hh)"/>';
-  s += '<text x="12" y="22" font-size="11" font-family="inherit" fill="#6E6E73">плита перекрытия</text>';
-  s += '<rect x="0" y="' + slabH + '" width="18" height="' + (Hv - slabH) + '" fill="#E8E8ED" stroke="#C7C7CC"/>';
-  if(!hasCorn) s += '<rect x="' + (Wv - 18) + '" y="' + slabH + '" width="18" height="' + (Hv - slabH) + '" fill="#E8E8ED" stroke="#C7C7CC"/>';
-
-  /* примыкание слева (и справа, если нет ниши) */
-  var xL = 18;
-  function profileAt(x, dir){ /* dir 1 — слева, -1 — справа */
-    var g = '';
-    if(F.system === 'shadow'){ g += '<path d="M' + x + ' ' + (yS - 14) + ' h' + (26 * dir) + ' v40 h' + (-10 * dir) + ' v-24 h' + (-8 * dir) + ' v24 h' + (-8 * dir) + ' Z" fill="' + PROF + '" stroke="' + INK + '"/>';
-      g += '<rect x="' + (dir > 0 ? x : x - 8) + '" y="' + (yS - 6) + '" width="8" height="12" fill="#1D1D1F"/>'; }
-    else if(F.system === 'seamless'){ g += '<path d="M' + x + ' ' + (yS - 8) + ' h' + (20 * dir) + ' v28 h' + (-8 * dir) + ' v-18 h' + (-12 * dir) + ' Z" fill="' + PROF + '" stroke="' + INK + '"/>'; }
-    else if(F.system === 'float'){ g += '<path d="M' + x + ' ' + (yS - 18) + ' h' + (30 * dir) + ' v48 h' + (-8 * dir) + ' v-32 h' + (-14 * dir) + ' v32 h' + (-8 * dir) + ' Z" fill="' + PROF + '" stroke="' + INK + '"/>';
-      g += '<rect x="' + (dir > 0 ? x + 10 : x - 20) + '" y="' + (yS - 2) + '" width="10" height="5" fill="' + LED + '"/>';
-      g += '<path d="M' + (dir > 0 ? x + 8 : x - 8) + ' ' + (yS + 4) + ' L' + x + ' ' + (Hv - 10) + '" stroke="' + LED + '" stroke-width="12" opacity=".3" stroke-linecap="round"/>'; }
-    else { g += '<rect x="' + (dir > 0 ? x : x - 26) + '" y="' + (yS - 14) + '" width="26" height="30" fill="' + PROF + '" stroke="' + INK + '"/>';
-      if(mold || F.system === 'standard') g += '<rect x="' + (dir > 0 ? x : x - 28) + '" y="' + (yS - 4) + '" width="28" height="9" rx="2" fill="#FFFFFF" stroke="' + BLUE + '"/>'; }
-    return g;
-  }
-  s += profileAt(xL, 1);
-  if(!hasCorn) s += profileAt(Wv - 18, -1);
-  var xP0 = F.system === 'seamless' ? 18 : 44, xP1 = hasCorn ? xR : (F.system === 'seamless' ? Wv - 18 : Wv - 44);
-
-  /* полотно */
-  s += '<path d="M' + xP0 + ' ' + yS + ' H' + xP1 + '" stroke="' + INK + '" stroke-width="6"/><path d="M' + xP0 + ' ' + yS + ' H' + xP1 + '" stroke="' + SHEET + '" stroke-width="4"/>';
-  if(hasCorn) s += '<circle cx="' + (xR - 2) + '" cy="' + yS + '" r="4" fill="' + INK + '"/>';
-
-  /* выноски слева: профиль, полотно */
-  s += num(30, yS + 60) + lead(30, yS + 50, 30, yS + 18); legend(prof || { name:'Профиль по периметру', price:0, unit:'м' }, F.system === 'standard' && mold ? 'со вставкой' : null);
-  var xCanvasTag = 150; s += num(xCanvasTag, yS + 60) + lead(xCanvasTag, yS + 50, xCanvasTag, yS + 4); legend(canvas || { name:'Полотно', price:0, unit:'м²' }, seamC ? 'бесщелевая кромка ' + moneyP(seamC.price) + '/м²' : null);
-
-  /* свет: раскладываем по доступной ширине */
-  var lights = []; if(spot) lights.push('spot'); if(line) lights.push('line'); if(track) lights.push('track'); if(chand) lights.push('chand');
-  var span0 = 240, span1 = hasCorn ? 560 : Wv - 120, step = lights.length ? (span1 - span0) / lights.length : 0;
-  lights.forEach(function(kind, i){
-    var x = span0 + step * (i + .5);
-    if(kind === 'spot'){ s += '<rect x="' + (x - 22) + '" y="' + (yS - 52) + '" width="44" height="46" fill="#48484A"/><rect x="' + (x - 30) + '" y="' + (yS - 6) + '" width="60" height="10" rx="2" fill="#D2D2D7" stroke="' + INK + '"/>';
-      s += '<path d="M' + x + ' ' + (yS + 8) + ' L' + (x - 22) + ' ' + (yS + 62) + ' M' + x + ' ' + (yS + 8) + ' L' + (x + 22) + ' ' + (yS + 62) + '" stroke="' + LED + '" stroke-width="18" opacity=".28" stroke-linecap="round"/>';
-      s += num(x, yS - 70) + lead(x, yS - 60, x, yS - 52); legend(spot, F.spots ? Math.round(F.spots) + ' шт' : null); }
-    if(kind === 'line'){ s += '<rect x="' + (x - 34) + '" y="' + (yS - 30) + '" width="68" height="34" fill="#48484A"/><rect x="' + (x - 36) + '" y="' + (yS - 3) + '" width="72" height="7" fill="#FFF9EC" stroke="' + INK + '"/>';
-      s += '<path d="M' + (x - 30) + ' ' + (yS + 8) + ' L' + (x - 40) + ' ' + (yS + 70) + ' M' + (x + 30) + ' ' + (yS + 8) + ' L' + (x + 40) + ' ' + (yS + 70) + '" stroke="' + LED + '" stroke-width="14" opacity=".22" stroke-linecap="round"/>';
-      s += num(x, yS - 48) + lead(x, yS - 38, x, yS - 30); legend(line, fq2(qty(line)) + ' м'); }
-    if(kind === 'track'){ s += '<rect x="' + (x - 40) + '" y="' + (yS - 26) + '" width="80" height="30" fill="#3A3A3C"/><rect x="' + (x - 42) + '" y="' + (yS - 2) + '" width="84" height="6" fill="#1D1D1F"/>';
-      s += '<rect x="' + (x - 8) + '" y="' + (yS + 4) + '" width="16" height="22" rx="3" fill="#48484A"/><path d="M' + x + ' ' + (yS + 26) + ' L' + (x - 14) + ' ' + (yS + 70) + ' M' + x + ' ' + (yS + 26) + ' L' + (x + 14) + ' ' + (yS + 70) + '" stroke="' + LED + '" stroke-width="12" opacity=".25" stroke-linecap="round"/>';
-      s += num(x, yS - 44) + lead(x, yS - 34, x, yS - 26); legend(track, fq2(qty(track)) + ' м'); }
-    if(kind === 'chand'){ s += '<rect x="' + (x - 14) + '" y="' + (yS - 40) + '" width="28" height="34" fill="#A68A64"/><rect x="' + (x - 20) + '" y="' + (yS - 6) + '" width="40" height="9" rx="2" fill="#D2D2D7" stroke="' + INK + '"/>';
-      s += '<path d="M' + x + ' ' + (yS + 3) + ' v30" stroke="' + INK + '" stroke-width="2"/><path d="M' + (x - 26) + ' ' + (yS + 33) + ' Q' + x + ' ' + (yS + 62) + ' ' + (x + 26) + ' ' + (yS + 33) + ' Z" fill="#FFFFFF" stroke="' + INK + '"/>';
-      s += num(x, yS - 58) + lead(x, yS - 48, x, yS - 40); legend(chand, Math.round(F.chand) + ' шт'); }
-  });
-
-  /* ниша под шторы справа */
-  if(hasCorn){
-    s += '<rect x="' + (xR + 60) + '" y="' + slabH + '" width="80" height="44" fill="#A68A64"/><text x="' + (xR + 68) + '" y="' + (slabH + 28) + '" font-size="10" fill="#fff" font-family="inherit">брус</text>';
-    s += '<path d="M' + xR + ' ' + (yS - 32) + ' H' + (xR + 140) + ' V' + (yS + 32) + ' H' + (xR + 105) + ' V' + (yS - 8) + ' H' + xR + ' Z" fill="' + PROF + '" stroke="' + INK + '" stroke-width="1.2"/>';
-    s += '<rect x="' + (xR + 6) + '" y="' + (yS - 4) + '" width="92" height="14" fill="#3A3A3C"/>';
-    if(led) s += '<rect x="' + (xR + 6) + '" y="' + (yS + 10) + '" width="92" height="6" fill="' + LED + '"/><path d="M' + (xR + 52) + ' ' + (yS + 18) + ' v' + (Hv - yS - 30) + '" stroke="' + LED + '" stroke-width="60" opacity=".18"/>';
-    s += '<rect x="' + (xR + 105) + '" y="' + (yS + 32) + '" width="20" height="8" fill="#48484A"/>';
-    s += '<path d="M' + (xR + 105) + ' ' + (yS + 40) + ' V' + Hv + ' H' + Wv + ' V' + (yS + 40) + ' Z" fill="#6E6E73" opacity=".6"/><rect x="' + (xR + 135) + '" y="' + (yS + 40) + '" width="' + (Wv - xR - 135) + '" height="' + (Hv - yS - 40) + '" fill="#2C3E5A"/>';
-    s += num(xR + 52, yS + 80) + lead(xR + 52, yS + 70, xR + 52, yS + 34); legend(corn, fq2(qty(corn)) + ' м');
-    if(led){ s += num(xR + 120, yS + 80) + lead(xR + 120, yS + 70, xR + 110, yS + 18); legend(led, fq2(qty(led)) + ' м'); }
-  }
-  /* углы */
-  if(corners){ s += num(90, yS - 60) + lead(90, yS - 50, 44, yS - 14); legend(corners, Math.round(qty(corners)) + ' шт'); }
-  /* высота */
-  var drop = { standard:'3–5 см', shadow:'3–4 см', seamless:'3 см', float:'5–6,5 см' }[F.system];
-  s += '<path d="M' + (xCanvasTag + 60) + ' ' + slabH + ' V' + (yS - 3) + '" stroke="' + BLUE + '" stroke-width="1"/><path d="M' + (xCanvasTag + 54) + ' ' + slabH + ' h12 M' + (xCanvasTag + 54) + ' ' + (yS - 3) + ' h12" stroke="' + BLUE + '"/>';
-  s += '<text x="' + (xCanvasTag + 66) + '" y="' + ((slabH + yS) / 2 + 4) + '" font-size="11" font-family="inherit" fill="' + BLUE + '">' + drop + '</text>';
-  cutSvg.innerHTML = s;
-  leg.innerHTML = L.map(function(e){ var it = e.it;
-    return '<span><i>' + e.k + '</i><b>' + esc(shortName(it)) + '</b><em>' + (it.price ? moneyP(it.price) + '/' + esc(unitLabel(it.unit)) : '') + (e.extra ? ' · ' + esc(e.extra) : '') + '</em></span>'; }).join('');
-}
-
-/* ============ 4. ФАКТУРА, ВАРИАНТЫ ============ */
+/* ============ 4. ВАРИАНТЫ ============ */
 var clamp = function(v, a, b){ return Math.min(b, Math.max(a, v)); };
+function listRu(a, w){ w = w || 'и'; return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' ' + w + ' ' + a[a.length - 1]; }
 function setVar(k){
   if(!DATA.variants || !DATA.variants[k]) return;
   /* правки клиента (убрал/добавил позицию) переносим на тот же пункт другого варианта */
   var chg = {}; ITEMS.forEach(function(it){ if(it.on !== it.on0) chg[it.name] = it.on; });
+  var had = el('vars').contains(document.activeElement);
   vi = k; track('package_select', { variant:DATA.variants[k].title });
-  load(); ITEMS.forEach(function(it){ if(Object.prototype.hasOwnProperty.call(chg, it.name)) it.on = chg[it.name]; }); renderAll(); }
+  load(); ITEMS.forEach(function(it){ if(Object.prototype.hasOwnProperty.call(chg, it.name)) it.on = chg[it.name]; }); renderAll();
+  if(had){ var b = el('vars').querySelector('[aria-checked="true"]'); if(b) b.focus(); }
+}
 function variantTotal(v){ var g = 0; v.items.forEach(function(it){ if(it.optional) return; var q = 0; for(var r in it.q) q += it.q[r]; g += Math.round(it.price * q * 100) / 100; });
   return Math.round(g - Math.round(g * (DATA.discount || 0) / 100)); }
+/* варианты «Стандарт / Теневой»: переключатель из двух-трёх карточек над строками сметы; у каждого — итог и разница с базовым */
 function renderVars(){
-  var pan = document.getElementById('varsPan');
-  if(!DATA.variants || DATA.variants.length < 2){ pan.style.display = 'none'; return; }
-  pan.style.display = '';
-  var totals = DATA.variants.map(variantTotal);
-  var min = Math.min.apply(null, totals);
-  document.getElementById('vars').innerHTML = DATA.variants.map(function(v, k){
-    return '<button type="button" class="var' + (k === vi ? ' on' : '') + '" data-act="setVar" data-arg="' + k + '" aria-pressed="' + (k === vi) + '"><span class="vt"><b>' + esc(v.title) + '</b><small>' + esc(v.note || '') + '</small></span>'
-      + '<span class="vp2 num">' + money(totals[k]) + (totals[k] > min ? '<span class="vd">+' + money(totals[k] - min) + '</span>' : '<span class="vd">базовый</span>') + '</span></button>'; }).join('');
-}
-/* ============ 4б. КОМПАНИЯ, МЕНЕДЖЕР, ФОТО И ВИДЕО ============ */
-/* Что общее для компании (логотип, команда, видео, библиотека фото) — один раз в макете или в загрузках OpMax.
-   Контакты — у каждого менеджера свои: KP_CONFIG.contacts, те же поля, что у блока «Контакты» в OpMax. */
-var LAYOUT = window.DEMO_PROFILE || {};
-var TAG_RX = { shadow:/тенев/, float:/парящ/, seamless:/бесщел/, line:/лини/, track:/трек/, cornice:/карниз|штор|ниш/, led:/подсвет|засвет|контур/,
-  spot:/точечн|светильник|спот/, chandelier:/люстр/, insert:/вставк/, gloss:/глянц/, satin:/сатин/, matte:/матов/ };
-var TAG_RU = { shadow:'теневой профиль', float:'парящий потолок', seamless:'бесщелевое примыкание', line:'световые линии', track:'трек',
-  cornice:'ниша под шторы', led:'подсветка', spot:'точечный свет', chandelier:'люстра' };
-function tagsOf(name){ var n = String(name || '').toLowerCase(), t = []; for(var k in TAG_RX) if(TAG_RX[k].test(n)) t.push(k); return t; }
-function capOf(name){ var c = String(name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').replace(/\s*\d+$/, '').trim();
-  return /^(img|dsc|dcim|pxl|photo|image|screenshot|whatsapp|снимок|фото|объект|работ)/i.test(c) || (c.match(/[a-zа-яё]/gi) || []).length < 3 ? '' : c; }
-/* загрузки платформы → фото с тегами, видео, команда */
-function fromMedia(media){
-  var o = { photos:[], video:null, team:null, poster:null };
-  /* фото узла этого КП уже стоит на плитке — в «Объектах» и как «команда»/«обложка» его не показываем (платформа тоже фильтрует, но не полагаемся) */
-  var np = DATA && DATA.nodePhotos || {}, mine = Object.keys(np).map(function(k){ return np[k]; });
-  (media || []).forEach(function(m){
-    if(!m || typeof m.url !== 'string') return;
-    if(mine.indexOf(m.url) >= 0) return;
-    var n = String(m.name || '').toLowerCase(), mime = String(m.mime || '');
-    if(m.kind === 'video' || mime.indexOf('video/') === 0){ if(!o.video && (tagsOf(n).length || /объект|работ/.test(n))) o.video = { src:m.url }; return; }
-    if(mime && mime.indexOf('image/') !== 0) return;
-    if(/команд|team/.test(n)){ o.team = { photo:m.url, caption:'' }; return; }
-    if(/poster|обложк/.test(n)){ o.poster = m.url; return; }
-    /* в загрузках КП бывают и чужие файлы (план, фото комнаты клиента) — объектом считаем только помеченное */
-    var tg = tagsOf(n);
-    if(tg.length || /объект|работ/.test(n)) o.photos.push({ src:m.url, cap:capOf(m.name), tags:tg, score:8 });
-  });
-  if(o.video && o.poster) o.video.poster = o.poster;
-  return o;
-}
-function profile(){
-  var c = CFG || {}, m = Array.isArray(c.media) && c.media.length ? fromMedia(c.media) : { photos:[] };
-  var ph = (Array.isArray(c.photos) ? c.photos : []).map(function(x){ return typeof x === 'string' ? { src:x, cap:'', tags:[], score:8 } : x; });
-  /* разметку логотипа (<svg>) берём только из самого макета; из конфига — только ссылку на картинку */
-  var cc = Object.assign({}, c.company); ['logo','mark'].forEach(function(k){ if(cc[k] && /^\s*</.test(cc[k])) delete cc[k]; });
-  return {
-    company: Object.assign({}, LAYOUT.company, cc),
-    /* контакты личные: на платформе без подстановок, демо-контакты — только в демо */
-    contacts: CFG ? (CFG.demo === true ? {} : cleanContacts(CFG.contacts)) : cleanContacts(LAYOUT.contacts),
-    team: c.team || m.team || LAYOUT.team || null,
-    video: c.video || m.video || LAYOUT.video || null,
-    /* свои фото этого КП — вперёд, библиотека компании — следом */
-    photos: ph.concat(m.photos, LAYOUT.photos || [])
-  };
-}
-/* какие теги искать в фото — из состава сметы */
-function wantTags(F){
-  var w = [];
-  if(F.system !== 'standard') w.push(F.system);
-  if(F.lines) w.push('line'); if(F.track) w.push('track'); if(F.cornice) w.push('cornice'); if(F.led) w.push('led');
-  if(F.systems.indexOf('seamless') >= 0 && w.indexOf('seamless') < 0) w.push('seamless');
-  if(F.chand) w.push('chandelier'); if(F.spots) w.push('spot');
-  return w;
-}
-/* по кругу: лучший ещё не показанный объект на каждый тег сметы, потом лучшие остальные */
-var SIGN = ['shadow','float','seamless','line','track','cornice','two-level','gloss'];
-function pickPhotos(lib, want, n){
-  /* фото с заметной фишкой, которой нет в смете (парящий, линии, трек…), уходит назад — не обещаем чужого */
-  var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
-  var fit = function(x){ return (x.score || 0) - 10 * miss(x); };
-  var all = lib.slice().sort(function(a, b){ return fit(b) - fit(a); }), used = [], hit = [];
-  function has(p, t){ return (p.tags || []).indexOf(t) >= 0; }
-  for(var round = 0; used.length < n && round < 6; round++){
-    var added = false;
-    want.forEach(function(t){ if(used.length >= n) return;
-      var p = all.filter(function(x){ return used.indexOf(x) < 0 && has(x, t) && !miss(x); })[0];
-      if(p){ used.push(p); added = true; if(hit.indexOf(t) < 0) hit.push(t); } });
-    if(!added) break;
-  }
-  all.forEach(function(x){ if(used.length < n && used.indexOf(x) < 0) used.push(x); });
-  /* для галереи: сначала совпавшие со сметой, затем остальные */
-  var score = function(x){ return (x.tags || []).filter(function(t){ return want.indexOf(t) >= 0; }).length; };
-  var rest = all.filter(function(x){ return used.indexOf(x) < 0; }).sort(function(a, b){ return score(b) - score(a) || fit(b) - fit(a); });
-  return { list:used, hit:hit, gallery:used.concat(rest) };
-}
-var GAL = [], gi = 0, LB = GAL;   /* LB — что листает лайтбокс сейчас: «Объекты» (GAL) или плитки узлов (NODE_GAL) */
-function listRu(a){ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' и ' + a[a.length - 1]; }
-var ICO_PLAY = '<svg viewBox="0 0 14 14"><path d="M3 1.5v11l9-5.5z" fill="#fff"/></svg>', ICO_PAUSE = '<svg viewBox="0 0 14 14"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="#fff"/></svg>';
-function renderPhotos(){
-  var P = profile(), F = flags(), want = wantTags(F), vid = P.video && P.video.src ? P.video : null;
-  var r = pickPhotos(P.photos, want, vid ? 4 : 6), html = '', grid = document.getElementById('photos');
-  GAL = r.gallery;
-  r.list.forEach(function(p, k){
-    html += '<button type="button" class="ph2" data-act="openLb" data-arg="' + k + '"><img src="' + esc(p.src) + '" alt="' + esc(p.cap || 'Объект') + '">' + (p.cap ? '<div class="cap">' + esc(p.cap) + '</div>' : '') + '</button>';
-  });
-  if(!r.list.length && !vid) for(var i = 0; i < 3; i++) html += '<div class="ph2"><div class="pl">Фото объекта<br>загружается в OpMax</div></div>';
-  /* плитку с видео строим один раз: правка сметы не должна перезапускать ролик и сбрасывать паузу */
-  var vc = grid.querySelector('.vcard');
-  if(vid && vc && vc.getAttribute('data-src') === vid.src){
-    grid.querySelectorAll('.ph2').forEach(function(n){ n.parentNode.removeChild(n); }); grid.insertAdjacentHTML('beforeend', html);
-  } else {
-    grid.innerHTML = (vid ? '<div class="vcard' + (vid.poster ? ' hasposter' : '') + '" data-src="' + esc(vid.src) + '"><video id="objVid" muted loop playsinline preload="none"' + (vid.poster ? ' poster="' + esc(vid.poster) + '"' : '') + ' data-src="' + esc(vid.src) + '"></video>'
-      + '<button type="button" class="vbtn" id="vBtn" data-act="tglVid" aria-label="Пауза">' + ICO_PAUSE + '</button><div class="cap">' + esc(vid.caption || 'Видео с наших объектов') + '</div></div>' : '') + html;
-    if(vid) setupVid();
-  }
-  var hit = r.hit.filter(function(t){ return TAG_RU[t]; }).slice(0, 4).map(function(t){ return TAG_RU[t]; });
-  var pf = proofLead();   /* «120 объектов с 2015 года. » из оффера — перед прежней фразой */
-  document.getElementById('phLead').textContent = pf + (hit.length ? (pf ? 'Ниже — те, где есть то же, что в вашей смете: ' : 'Наши объекты, где есть то же, что в вашей смете: ') + listRu(hit) + '.' : pf ? 'Ниже — несколько из них.' : 'Несколько объектов, которые мы сделали.');
-  var more = document.getElementById('phMore');
-  more.hidden = GAL.length <= r.list.length; more.textContent = 'Все фото объектов · ' + GAL.length;
-}
-/* видео: грузим и крутим, только когда блок на экране; без автозапуска при «уменьшить движение» */
-var vio;
-function setupVid(){
-  var v = document.getElementById('objVid'); if(!v) return;
-  if(RM){ document.getElementById('vBtn').innerHTML = ICO_PLAY; return; }
-  if(!('IntersectionObserver' in window)){ v.src = v.dataset.src; v.play().catch(function(){}); return; }
-  if(vio) vio.disconnect();
-  vio = new IntersectionObserver(function(es){ es.forEach(function(e){
-    if(e.isIntersecting){ if(!v.src) v.src = v.dataset.src; if(!v.dataset.user) v.play().catch(function(){}); }
-    else if(!v.paused) v.pause(); }); }, { threshold:.25 });
-  vio.observe(v);
-}
-function tglVid(){ var v = document.getElementById('objVid'), b = document.getElementById('vBtn'); if(!v) return;
-  if(!v.src) v.src = v.dataset.src;
-  if(v.paused){ v.dataset.user = ''; v.play().catch(function(){}); b.innerHTML = ICO_PAUSE; b.setAttribute('aria-label', 'Пауза'); }
-  else { v.dataset.user = '1'; v.pause(); b.innerHTML = ICO_PLAY; b.setAttribute('aria-label', 'Смотреть'); } }
-/* лайтбокс: стрелки, Esc, свайп */
-function showLb(){ var p = LB[gi]; if(!p) return; document.getElementById('lbImg').src = p.src; document.getElementById('lbImg').alt = p.cap || '';
-  document.getElementById('lbCap').innerHTML = esc(p.cap || '') + '<small>' + (gi + 1) + ' из ' + LB.length + '</small>'; }
-/* открытый из «Объектов» лайтбокс листает только объекты, открытый с плитки узла — только узлы: списки не смешиваем */
-function openLb(k){ LB = GAL; openAt(k); }
-function openNode(k){ LB = NODE_GAL; openAt(k); }
-function openAt(k){ if(!LB.length) return; gi = clamp(k, 0, LB.length - 1); showLb(); document.getElementById('lb').hidden = false; document.body.style.overflow = 'hidden'; }
-function closeLb(){ document.getElementById('lb').hidden = true; document.body.style.overflow = ''; }
-function stepLb(d){ if(!LB.length) return; gi = (gi + d + LB.length) % LB.length; showLb(); }
-document.addEventListener('keydown', function(e){ if(document.getElementById('lb').hidden) return;
-  if(e.key === 'Escape') closeLb(); if(e.key === 'ArrowLeft') stepLb(-1); if(e.key === 'ArrowRight') stepLb(1); });
-/* PDF на платформе делается печатью страницы — перед печатью догружаем всё ленивое */
-window.addEventListener('beforeprint', function(){ document.querySelectorAll('img[loading="lazy"]').forEach(function(im){ im.loading = 'eager'; }); });
-(function(){ var lb = document.getElementById('lb'), x0 = null;
-  lb.addEventListener('click', function(e){ if(e.target === lb) closeLb(); });
-  lb.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive:true });
-  lb.addEventListener('touchend', function(e){ if(x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 40) stepLb(dx < 0 ? 1 : -1); x0 = null; }); })();
-
-/* контакты менеджера: только заполненные каналы — телефон, MAX, Telegram (WhatsApp не показываем) */
-function digits(s){ var d = String(s || '').replace(/\D/g, ''); if(d.length === 11 && d[0] === '8') d = '7' + d.slice(1); if(d.length === 10) d = '7' + d; return d; }
-function isPhone(s){ var t = String(s || '').trim(), n = t.replace(/\D/g, '').length; return /^\+?[\d\s().-]+$/.test(t) && n >= 10 && n <= 12; }
-var ICO = {
-  phone:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>',
-  tg:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M20.7 4.3 2.9 11.2c-1.2.5-1.2 1.2-.2 1.5l4.5 1.4 1.7 5.3c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l3-14.3c.3-1.3-.5-1.8-1.3-1.6zM8.9 13.9l9-5.7c.4-.3.8-.1.5.2l-7.7 7-.3 3.2-1.5-4.7z"/></svg>'
-  /* MAX — без логотипа: официальный знак не подделываем, на тёмной плитке просто «M» */
-};
-/* номер — в одном виде, как бы менеджер его ни ввёл: 8 938 523-44-37 */
-function phoneText(p){ var d = digits(p); return d.length === 11 && d[0] === '7' ? '8 ' + d.slice(1, 4) + ' ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9) : String(p); }
-function phoneIntl(p){ var d = digits(p); return d.length === 11 && d[0] === '7' ? '+7 ' + d.slice(1, 4) + ' ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9) : String(p).trim(); }
-function telHref(p){ var d = digits(p); return 'tel:' + (d.length === 11 ? '+' : '') + d; }
-/* из KP_CONFIG берём только известные поля-строки; whatsapp и прочее игнорируем */
-function cleanContacts(c){
-  var o = {}; if(!c || typeof c !== 'object') return o;
-  ['name','role','phone','max','telegram'].forEach(function(k){ var v = c[k]; if(typeof v === 'number') v = String(v); if(typeof v === 'string' && v.trim()) o[k] = v.trim(); });
-  return o;
-}
-function safePath(p){ try{ return encodeURI(decodeURI(p)); }catch(e){ return encodeURI(p); } }
-/* MAX: ссылка max.ru/… (со схемой или без) → открываем; номер телефона → надёжной ссылки по номеру нет, карточка копирует номер */
-function maxOf(v){
-  var s = String(v).trim(), m;
-  if(isPhone(s)) return { copy:phoneIntl(s), t:phoneText(s) };
-  if((m = s.match(/^(?:https?:\/\/)?((?:[a-z0-9-]+\.)*max\.ru)(\/\S*)?$/i))) return { href:'https://' + m[1].toLowerCase() + safePath(m[2] || '/') };
-  var nick = s.replace(/^@/, '');
-  return /^[\w.-]{2,64}$/.test(nick) ? { href:'https://max.ru/' + encodeURIComponent(nick) } : null;
-}
-function channels(C){
-  var ch = [];
-  if(C.phone && digits(C.phone).length >= 5) ch.push({ k:'phone', bg:'#34C759', href:telHref(C.phone), t:phoneText(C.phone), s:'позвонить' + (C.name ? ' · ' + C.name : '') });
-  if(C.max){ var mx = maxOf(C.max);
-    if(mx && mx.copy) ch.push({ k:'max', bg:'#1D1D1F', copy:mx.copy, t:'MAX', s:'номер ' + mx.t });
-    else if(mx) ch.push({ k:'max', bg:'#1D1D1F', href:mx.href, t:'MAX', s:'написать в MAX', ext:1 }); }
-  if(C.telegram){ var tg = String(C.telegram).trim().replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me)\//i, '').replace(/^@/, '');
-    var tgPhone = isPhone(tg);
-    if(tgPhone || /^[\w.+-]{2,64}$/.test(tg))
-      ch.push({ k:'tg', bg:'#229ED9', href:'https://t.me/' + (tgPhone ? '+' + digits(tg) : encodeURIComponent(tg)), t:'Telegram', s:tgPhone ? 'написать в Telegram' : '@' + tg, ext:1 }); }
-  return ch;
-}
-/* ссылка или кнопка «скопировать номер» — без on*-атрибутов: клики разбирает один общий обработчик (строгая CSP платформы) */
-function chEl(c, cls, inner, trk, act){
-  if(c.copy) return '<button type="button" class="' + cls + '" data-act="copyMax" data-arg="' + esc(c.copy) + '" data-track="' + trk + '">' + inner + '</button>';
-  return '<a class="' + cls + '" href="' + esc(c.href) + '" data-track="' + trk + '"' + (act ? ' data-act="' + act + '"' : '') + (c.ext ? ' target="_blank" rel="noopener"' : '') + '>' + inner + '</a>';
-}
-function renderPeople(){
-  var P = profile(), C = P.contacts || {}, co = P.company || {}, ch = channels(C);
-  /* шапка: логотип, менеджер, кнопки */
-  var logo = co.logo ? (/^\s*<svg/.test(co.logo) ? co.logo.replace('<svg', '<svg class="full"') : '<img class="full" src="' + esc(co.logo) + '" alt="' + esc(co.name || '') + '">') : (co.name ? '<b class="full" style="line-height:1.2;font-size:15px">' + esc(co.name) + '</b>' : '');
-  var mark = co.mark ? co.mark.replace('<svg', '<svg class="mk"') : '';
-  document.getElementById('brand').innerHTML = logo + mark;
-  document.getElementById('hMgr').textContent = C.name ? 'Менеджер: ' + C.name : '';
-  var nav = '', call = ch.filter(function(c){ return c.k === 'phone'; })[0];
-  var msg = ch.filter(function(c){ return c.k === 'max'; })[0] || ch.filter(function(c){ return c.k === 'tg'; })[0];
-  if(call) nav += chEl(call, 'tbtn', 'Позвонить', 'phone');
-  if(msg) nav += chEl(msg, 'tbtn p', esc(msg.t), msg.k);
-  document.getElementById('hNav').innerHTML = nav;
-  /* финальный блок */
-  document.querySelector('.who .wl').textContent = C.name ? 'Ваш менеджер' : 'Связаться с нами';
-  document.getElementById('mName').textContent = C.name || (co.name ? '«' + co.name + '»' : '');
-  document.getElementById('mRole').textContent = C.name ? (C.role || [co.name ? '«' + co.name + '»' : '', co.city].filter(Boolean).join(' · ')) : (co.city || '');
-  document.getElementById('cts').innerHTML = ch.map(function(c){
-    return chEl(c, 'ct', '<span class="ic" style="background:' + c.bg + '">' + (ICO[c.k] || 'M') + '</span><span>' + esc(c.t) + '<small>' + esc(c.s) + '</small></span><span class="go">›</span>', c.k); }).join('')
-    || (document.body.classList.contains('editmode') ? '<p class="hint">Контакты менеджера не заполнены — добавьте телефон, MAX или Telegram в OpMax.</p>' : '');
-  var tm = P.team, fig = document.getElementById('team'), mg = document.getElementById('mgr');
-  if(tm && tm.photo){ fig.hidden = false; document.getElementById('teamImg').src = tm.photo; document.getElementById('teamImg').alt = tm.caption || 'Команда';
-    document.getElementById('teamCap').textContent = tm.caption || ''; mg.classList.remove('noteam'); }
-  else { fig.hidden = true; mg.classList.add('noteam'); }
-  document.getElementById('fCo').textContent = [co.name ? '«' + co.name + '»' : '', co.city, co.what].filter(Boolean).join(' · ');
-  /* заголовок вкладки на платформе ставит сама платформа — трогаем только в демо */
-  if(co.name && !CFG) document.title = kpLabel() + ' · ' + co.name;
+  var pan = el('vars');
+  if(!DATA.variants || DATA.variants.length < 2){ pan.hidden = true; pan.innerHTML = ''; return; }
+  pan.hidden = false;
+  var totals = DATA.variants.map(variantTotal), min = Math.min.apply(null, totals);
+  pan.innerHTML = DATA.variants.map(function(v, k){
+    return '<button type="button" class="kp-chip pv-var" role="radio" aria-checked="' + (k === vi) + '" tabindex="' + (k === vi ? 0 : -1) + '" data-act="setVar" data-arg="' + k + '">'
+      + '<span class="pv-var-t"><b>' + escT(v.title) + '</b>' + (v.note ? '<small>' + escT(v.note) + '</small>' : '') + '</span>'
+      + '<span class="pv-var-p"><b>' + money(totals[k]) + '</b><small>' + (totals[k] > min ? '+' + money(totals[k] - min) : 'базовый') + '</small></span></button>'; }).join('');
 }
 
+/* __PHOTOS_JS__ — сюда build.py вставляет potolki-photos.js (компания, фото, видео, лайтбокс) */
+/* __PEOPLE_JS__ — сюда build.py вставляет potolki-people.js (контакты, каналы, подвал) */
+/* __NODES_JS__ — сюда build.py вставляет potolki-nodes.js (плитки узлов в первом экране) */
+/* __CUT_JS__ — сюда build.py вставляет potolki-cut.js (разрез потолка для печати) */
+/* __OFFER_JS__ — сюда build.py вставляет potolki-offer.js (оффер продавца: normOffer, guaranteeLine, секции оффера) */
 
-/* ============ 4в. ПЛИТКИ УЗЛОВ В ПЕРВОМ ЭКРАНЕ ============
-   Клиент на телефоне видит не разрез с цифрами, а фото того, что есть в его смете: примыкание, свет, ниша.
-   Плитки строятся из тех же flags(), что и разрез; полотно и углы плитки не получают. Фото — по цепочке:
-   своё у ЭТОГО КП (KP_CONFIG.nodePhotos, редактор OpMax) → своё у позиции каталога (KP_CONFIG.items[].image) →
-   библиотека компании по тегу → пиктограмма и название узла. Ключи узлов объявлены платформе меткой data-kp-nodes
-   (build.py собирает её из NODE_LABEL — при правке словаря ничего дописывать не надо). */
-var CUT = {
-    standard:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><rect x="14" y="44" width="22" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M36 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M36 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="52" width="24" height="8" rx="2" fill="#FFFFFF" stroke="#0071E3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">вставка закрывает щель у стены</text></svg>',
-    shadow:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 36 H40 V74 H30 V50 H22 V74 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M40 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M40 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="14" y="50" width="8" height="12" fill="#1D1D1F"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">тёмный зазор 6 мм вместо вставки</text></svg>',
-    seamless:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 42 H34 V70 H26 V52 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><path d="M14 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M14 56 H400" stroke="#FFFFFF" stroke-width="3"/><text x="60" y="90" font-size="10" font-family="inherit" fill="#0071E3">полотно вплотную к стене, без щели</text></svg>',
-    float:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="0" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M14 32 H44 V78 H36 V48 H22 V78 H14 Z" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="24" y="50" width="10" height="5" fill="#FFB454"/><path d="M44 60 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M44 60 H400" stroke="#FFFFFF" stroke-width="3"/><path d="M22 56 L14 110" stroke="#FFB454" stroke-width="10" opacity=".35"/><text x="60" y="94" font-size="10" font-family="inherit" fill="#0071E3">лента за полотном, свет стекает по стене</text></svg>' };
-var NODE_LABEL = { standard:'Профиль со вставкой', shadow:'Теневое примыкание', float:'Парящий профиль', seamless:'Бесщелевое примыкание',
-  spot:'Точечный свет', chandelier:'Люстра', track:'Трек', line:'Световая линия', led:'LED-подсветка', cornice:'Ниша под шторы' };
-/* какие роли строк сметы отвечают за плитку: у неё берём своё фото позиции, если оно есть */
-var NODE_ROLES = { standard:['standard','molding'], shadow:['shadow'], float:['float'], seamless:['seamless','seamless-canvas'],
-  spot:['spot','fixture','spot-install'], chandelier:['chandelier','chandelier-install'], track:['track'], line:['line'], led:['led'], cornice:['cornice'] };
-/* пиктограммы для плитки без фото — в языке разрезов CUT: плита, полотно, узел; для примыканий берём сам CUT */
-var NODE_ICO = {
-  spot:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="178" y="22" width="44" height="32" fill="#48484A"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="170" y="52" width="60" height="9" rx="2" fill="#D2D2D7" stroke="#1D1D1F"/><path d="M200 64 L176 104 M200 64 L224 104" stroke="#FFB454" stroke-width="18" opacity=".28" stroke-linecap="round"/></svg>',
-  chandelier:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="186" y="22" width="28" height="30" fill="#A68A64"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="180" y="50" width="40" height="9" rx="2" fill="#D2D2D7" stroke="#1D1D1F"/><path d="M200 59 v20" stroke="#1D1D1F" stroke-width="2"/><path d="M172 79 Q200 108 228 79 Z" fill="#FFFFFF" stroke="#1D1D1F"/></svg>',
-  track:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="150" y="22" width="100" height="32" fill="#3A3A3C"/><path d="M0 56 H150 M250 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H150 M250 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="148" y="53" width="104" height="7" fill="#1D1D1F"/><rect x="192" y="60" width="16" height="22" rx="3" fill="#48484A"/><path d="M200 82 L186 106 M200 82 L214 106" stroke="#FFB454" stroke-width="12" opacity=".25" stroke-linecap="round"/></svg>',
-  line:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="160" y="22" width="80" height="32" fill="#48484A"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><rect x="158" y="52" width="84" height="8" fill="#FFF9EC" stroke="#1D1D1F"/><path d="M170 64 L160 104 M230 64 L240 104" stroke="#FFB454" stroke-width="14" opacity=".22" stroke-linecap="round"/></svg>',
-  led:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="120" y="22" width="160" height="26" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="132" y="42" width="136" height="6" fill="#FFB454"/><path d="M0 56 H400" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H400" stroke="#FFFFFF" stroke-width="3"/><path d="M200 62 v42" stroke="#FFB454" stroke-width="150" opacity=".16"/></svg>',
-  cornice:'<svg viewBox="0 0 400 110"><rect x="0" y="0" width="400" height="22" fill="#E8E8ED"/><rect x="386" y="22" width="14" height="88" fill="#E8E8ED" stroke="#C7C7CC"/><path d="M0 56 H250" stroke="#1D1D1F" stroke-width="5"/><path d="M0 56 H250" stroke="#FFFFFF" stroke-width="3"/><path d="M250 38 H386 V74 H348 V52 H250 Z" fill="#AEAEB2" stroke="#1D1D1F"/><rect x="256" y="52" width="86" height="10" fill="#3A3A3C"/><rect x="348" y="74" width="38" height="36" fill="#2C3E5A"/></svg>' };
-/* список плиток в порядке, как называл Павел: примыкание (каждая система, по убыванию метража) → точечный свет → люстра →
-   трек → световая линия → подсветка → ниша под шторы. Потолка по числу нет: у «двух вариантов» бывает 7 */
-function heroNodes(F){
-  var keys = F.systems.slice().sort(function(a, b){ return (F.sysLen[b] || 0) - (F.sysLen[a] || 0); });
-  if(F.spots) keys.push('spot'); if(F.chand) keys.push('chandelier'); if(F.track) keys.push('track');
-  if(F.lines) keys.push('line'); if(F.led) keys.push('led'); if(F.cornice) keys.push('cornice');
-  return keys.map(function(k){ return { key:k, tag:k === 'standard' ? 'insert' : k, label:NODE_LABEL[k] }; });
+/* ============ 5. ОБЛОЖКА, СМЕТА, ИТОГ ============ */
+function dateParts(v){
+  if(v == null || v === '') return null;
+  var s = String(v).trim(), m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return { y:+m[1], m:+m[2], d:+m[3] };
+  if((m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/))) return { y:+m[3], m:+m[2], d:+m[1] };
+  var d = new Date(s); return isNaN(d.getTime()) ? null : { y:d.getFullYear(), m:d.getMonth() + 1, d:d.getDate() };
 }
-/* фото плитки: (0) своё у ЭТОГО КП — продавец подставил его на плитку осознанно под этого клиента, оно конкретнее любого общего
-   источника; (1) своё у первой включённой строки этой роли, (2) библиотека по тегу — как pickPhotos: без чужой фишки в кадре
-   и ещё не занятое другой плиткой; если «чистого» фото нет — с наименьшим числом чужих (как «Объекты» добирают остаток), (3) null */
-function nodePhoto(n, want, lib, taken){
-  var mine = DATA.nodePhotos[n.key]; if(mine) return { src:mine };
-  var own = ITEMS.filter(function(it){ return it.on && NODE_ROLES[n.key].indexOf(it.role) >= 0 && it.image; })[0];
-  if(own) return { src:own.image };
-  var miss = function(x){ return (x.tags || []).filter(function(t){ return SIGN.indexOf(t) >= 0 && want.indexOf(t) < 0; }).length; };
-  var c = lib.filter(function(x){ return x && x.src && taken.indexOf(x.src) < 0 && (x.tags || []).indexOf(n.tag) >= 0; })
-    .sort(function(a, b){ return miss(a) - miss(b) || (b.score || 0) - (a.score || 0); })[0];
-  return c ? { src:c.src } : null;
-}
-var NODE_GAL = [];
-function renderNodes(){
-  var F = flags(), want = wantTags(F), lib = profile().photos, taken = [], html = '', nodes = heroNodes(F);
-  NODE_GAL = [];
-  nodes.forEach(function(n){
-    var p = nodePhoto(n, want, lib, taken);
-    if(p){ taken.push(p.src);
-      html += '<button type="button" class="ph2" data-act="openNode" data-arg="' + NODE_GAL.length + '" aria-label="' + esc(n.label) + ' — открыть фото"><img src="' + esc(p.src) + '" alt=""><div class="cap">' + esc(n.label) + '</div></button>';
-      NODE_GAL.push({ src:p.src, cap:n.label }); }
-    /* заглушка — не кнопка, открывать нечего; у CUT убираем подпись 10px — на плитке 150px она нечитаема, название узла есть в .cap */
-    else html += '<div class="ph2 ico">' + (CUT[n.key] ? CUT[n.key].replace(/<text[\s\S]*?<\/text>/g, '') : NODE_ICO[n.key] || '') + '<div class="cap">' + esc(n.label) + '</div></div>';
-  });
-  document.getElementById('nodes').innerHTML = html;
-  tellNodes(nodes.map(function(n){ return n.key; }));
-}
-/* редактору OpMax («Фото узлов»): какие узлы сейчас в смете — помечает их «в смете». Только ключи, без данных клиента;
-   вне фрейма молчим. Адресат — свой origin (превью в кабинете); у file:// и «null» origin адреса нет — тогда '*', в сообщении всё равно одни ключи */
-function tellNodes(keys){
-  if(window.parent === window) return;
-  var o = String(window.location.origin || '');
-  try{ window.parent.postMessage({ type:'kp-nodes', keys:keys }, /^https?:\/\//.test(o) ? o : '*'); }catch(e){}
+/* «30 сентября 2026 г.»; год не пишем, если он равен hideYear (срок цены в том же году, что и дата КП) */
+function fmtLong(v, hideYear){ var p = dateParts(v); if(!p) return '';
+  return p.d + NBSP + MONTHS[p.m - 1] + (hideYear === p.y ? '' : NBSP + p.y + NBSP + 'г.'); }
+function renderCover(){
+  var F = EMPTY ? null : flags(), O = DATA.offer;
+  el('h1').innerHTML = 'Натяжной потолок' + (F && F.area ? ' <span class="kp-tab">' + fq2(F.area) + NBSP + 'м²</span>' : '');
+  /* подзаголовок — только результат из оффера продавца: автотекст из сметы не подставляем (сводка состава — в «Итого»), пустого подзаголовка нет */
+  var sub = O && O.outcome ? typo(O.outcome) : '', hs = el('hsub');
+  hs.textContent = sub; hs.hidden = !sub;
+  /* номер, дата, срок — только то, что пришло из конфига; без номера КП не выдумывается («КП» без цифр) */
+  var lead = typo(DATA.num ? '№' + NBSP + DATA.num + (DATA.dateLong ? ' от ' + DATA.dateLong : '') : DATA.dateLong ? 'от ' + DATA.dateLong : '');
+  var m = lead ? '<div><dt>Коммерческое предложение</dt><dd>' + esc(lead) + '</dd></div>' : '<div><dd>Коммерческое предложение</dd></div>';
+  if(DATA.example) m += '<div><dt>Состав</dt><dd>Пример сметы</dd></div>';
+  if(DATA.addr) m += '<div><dt>Объект</dt><dd>' + escT(DATA.addr) + '</dd></div>';
+  if(DATA.client) m += '<div><dt>Для</dt><dd>' + escT(DATA.client) + '</dd></div>';
+  el('meta').innerHTML = m;
 }
 
-/* __OFFER_JS__ — сюда build.py вставляет potolki-offer.js (оффер продавца: normOffer, guaranteeLine, renderOffer) */
-
-/* ============ 5. ПАНЕЛЬ И СМЕТА ============ */
 /* выключить или обнулить можно только позицию «по желанию»: остальное входит в систему потолка (нижняя граница счёта — 1) */
-function tglItem(i){ var it = ITEMS[i]; if(!it || !it.opt) return; it.on = !it.on; track('quote_toggle', { item:it.name, on:it.on }); renderAll(); }
-function stepItem(i, d){ var it = ITEMS[i]; if(!it || !d) return; var k = Object.keys(it.q)[0]; it.q[k] = clamp(Math.round((it.q[k] + d) * 100) / 100, it.opt ? 0 : 1, 200); it.on = it.q[k] > 0; track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll(); }
-
+function tglItem(i, on){
+  var it = ITEMS[i]; if(!it || !it.opt) return;
+  it.on = typeof on === 'boolean' ? on : !it.on;
+  var k = Object.keys(it.q)[0];
+  if(it.on && qty(it) <= 0) it.q[k] = numOf(JSON.parse(it.q0)[k]) > 0 ? numOf(JSON.parse(it.q0)[k]) : 1;   /* включили обнулённую позицию — возвращаем её количество */
+  track('quote_toggle', { item:it.name, on:it.on }); renderAll();
+}
+function stepItem(i, d){
+  var it = ITEMS[i]; if(!it || !d) return;
+  var k = Object.keys(it.q)[0]; it.q[k] = clamp(Math.round((it.q[k] + d) * 100) / 100, it.opt ? 0 : 1, 200);
+  if(d > 0) it.on = true; else if(it.q[k] <= 0) it.on = false;   /* «−» на выключенной позиции её не включает */
+  track('quote_toggle', { item:it.name, qty:it.q[k] }); renderAll();
+}
+var BUILT = false;
+/* строки строим один раз на состав, дальше только обновляем числа: тумблер и степпер не теряют фокус при каждом нажатии */
 function renderItems(){
-  var html = '';
+  if(BUILT){ syncItems(); return; }
+  var html = '', anyOpt = false, anyStep = false;
   CAT_ORDER.forEach(function(cat){
     var list = ITEMS.filter(function(it){ return it.cat === cat; }); if(!list.length) return;
-    var s = 0; list.forEach(function(it){ if(it.on) s += lineSum(it); });
-    html += '<div class="grp"><div class="gh"><span>' + CAT_NAME[cat] + '</span><span>' + money(s) + '</span></div>';
+    html += '<li class="kp-qgroup-h pv-grp"><h3 class="kp-h3">' + escT(CAT_NAME[cat]) + '</h3><span class="kp-h3 kp-tab" data-sub="' + cat + '"></span></li>';
     list.forEach(function(it){
-      var q = qty(it), single = Object.keys(it.q).length === 1, step = it.isCount && single;
-      html += '<div class="it' + (it.on ? '' : ' off') + '"><span class="itx">' + esc(it.name) + '<small>' + (it.opt ? 'по желанию · ' : '') + (step ? '' : fq2(q) + ' ' + esc(unitLabel(it.unit)) + ' × ') + moneyP(it.price) + (step ? ' за шт' : '') + '</small></span>'
-        + (step ? '<span class="sb"><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="-1" aria-label="Меньше">−</button><span>' + fq2(q) + '</span><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="1" aria-label="Больше">+</button></span>' : '')
-        + '<span class="itp">' + money(lineSum(it)) + '</span>'
-        + (it.opt ? '<button type="button" class="sw" data-act="tglItem" data-arg="' + it.i + '" role="switch" aria-checked="' + it.on + '" aria-label="' + esc(shortName(it)) + ' — в смете"></button>' : '') + '</div>';
+      var single = Object.keys(it.q).length === 1, step = it.isCount && single && !it.opt, u = unitLabel(it.unit), nm = esc(it.name);
+      if(it.opt) anyOpt = true; if(step) anyStep = true;
+      var sw = it.opt ? '<label class="pv-opt"><input class="kp-sw" type="checkbox" role="switch" data-act="tglItem" data-arg="' + it.i + '" aria-label="Включить: ' + nm + '"><span>Добавить в' + NBSP + 'смету</span></label>' : '';
+      var st = step ? '<div class="pv-step" role="group" aria-label="Количество: ' + nm + '"><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="-1" aria-label="Меньше">' + ic('minus') + '</button>'
+        + '<output data-out></output><button type="button" data-act="stepItem" data-arg="' + it.i + '" data-d="1" aria-label="Больше">' + ic('plus') + '</button></div>' : '';
+      html += '<li class="kp-qrow" data-row="' + it.i + '"><div class="kp-qmain"><span class="kp-qname">' + escT(it.name) + (it.opt ? '<span class="kp-tag">по' + NBSP + 'желанию</span>' : '') + '</span>'
+        + '<span class="kp-qunit"><span data-q></span>' + (u ? NBSP + esc(u) : '') + ' × ' + moneyP(it.price) + '</span></div>'
+        + '<div class="kp-qside">' + (sw || st ? '<div class="kp-qctl">' + sw + st + '</div>' : '') + '<span class="kp-qprice" data-line></span></div></li>';
     });
-    html += '</div>';
   });
-  document.getElementById('items').innerHTML = html;
+  el('items').innerHTML = html; BUILT = true;
+  el('smLead').textContent = typo(anyOpt ? 'Включайте позиции по желанию — итог пересчитается сразу' : anyStep ? 'Меняйте количество — итог пересчитается сразу' : 'Состав и цена потолка');
+  syncItems();
+}
+function syncItems(){
+  var root = el('items'); if(!root) return;
+  ITEMS.forEach(function(it){
+    var li = root.querySelector('[data-row="' + it.i + '"]'); if(!li) return;
+    var q = qty(it), qe = li.querySelector('[data-q]'), o = li.querySelector('[data-out]'), sw = li.querySelector('input.kp-sw'), dec = li.querySelector('[data-d="-1"]');
+    li.classList.toggle('is-off', !it.on);
+    if(qe) qe.textContent = fq2(q);
+    if(o) o.textContent = fq2(q);
+    li.querySelector('[data-line]').textContent = money(lineSum(it));
+    if(sw) sw.checked = it.on;
+    if(dec) dec.disabled = q <= (it.opt ? 0 : 1);
+  });
+  CAT_ORDER.forEach(function(cat){ var e = root.querySelector('[data-sub="' + cat + '"]'); if(!e) return;
+    var s = 0; ITEMS.forEach(function(it){ if(it.cat === cat && it.on) s += lineSum(it); }); e.textContent = money(s); });
 }
 function renderSum(){
   var g = gross(), d = discount(), t = total(), F = flags();
-  var el = document.getElementById('sTotal'); el.textContent = money(t); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
-  var note = fq2(F.area) + ' м² · ' + F.brand + ' · ' + SYS_NAME[F.system]
-    + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') : '') + (F.lines ? ' · линии ' + fq2(F.lines) + ' м' : '');
-  document.getElementById('sNote').textContent = note;
-  var rows = '';
-  CAT_ORDER.forEach(function(cat){ var s = 0, any = false; ITEMS.forEach(function(it){ if(it.cat === cat){ any = true; if(it.on) s += lineSum(it); } });
-    if(any) rows += '<div class="srow"><span>' + CAT_NAME[cat] + '</span><span>' + money(s) + '</span></div>'; });
-  if(d) rows += '<div class="srow disc"><span>Скидка ' + fq2(DATA.discount) + ' %</span><span>−' + money(d) + '</span></div>';
-  document.getElementById('sRows').innerHTML = rows;
-  ['hTotal','aTotal','mTotal'].forEach(function(id){ var e = document.getElementById(id); if(e) e.textContent = money(t); });
-  var hp = document.getElementById('hTotal'); hp.classList.remove('pulse'); void hp.offsetWidth; hp.classList.add('pulse');
-  document.getElementById('mSub').textContent = note;
-  document.getElementById('aDesc').textContent = note + (DATA.variants ? ' · вариант «' + DATA.variants[vi].title + '»' : '') + '.' + (DATA.until ? ' Цена действительна до ' + DATA.until + '.' : '');
-  /* шапка */
-  document.getElementById('h1').innerHTML = 'Натяжной потолок' + (F.area ? ' <span style="white-space:nowrap">' + fq2(F.area) + '&nbsp;м²</span>' : '');
-  document.getElementById('hsub').innerHTML = outcomeHtml() || '<b>' + esc(F.brand) + '</b> · <b>' + SYS_NAME[F.system] + '</b>'
-    + (F.spots ? ' · ' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + ' света' : '') + (F.chand ? ' · ' + plural(Math.round(F.chand), 'точка', 'точки', 'точек') + ' под люстру' : '')
-    + (F.lines ? ' · световые линии ' + fq2(F.lines) + ' м' : '') + (F.track ? ' · трек ' + fq2(F.track) + ' м' : '') + (F.cornice ? ' · ниша под шторы' : '')
-    + (d ? ' · скидка ' + fq2(DATA.discount) + ' %' : '');
-  /* что важно знать: примыкание и высота */
-  var SYSP = { standard:'Профиль по периметру, щель у стены закрывает гибкая вставка в цвет потолка. Подходит для любых стен.',
-               shadow:'Ровная тёмная щель у стены вместо вставки — потолок выглядит как гипсокартонный, но без швов и трещин. Нужны ровные стены.',
-               seamless:'Полотно подходит к стене вплотную: ни щели, ни вставки. Самый чистый вид.',
-               float:'Лента за полотном по периметру: свет стекает по стенам, потолок будто висит в воздухе.' };
-  var DROP = { standard:['3–5 см','Стеновой профиль.'], shadow:['3–4 см','Теневой профиль.'], seamless:['3 см','Бесщелевое примыкание.'], float:['5–6,5 см','Парящий профиль с лентой за полотном.'] };
-  document.getElementById('kSys').innerHTML = '<div class="kv">Примыкание</div><b>' + esc(SYS_NAME[F.system].charAt(0).toUpperCase() + SYS_NAME[F.system].slice(1)) + '</b><p>' + SYSP[F.system]
-    + (F.corners ? ' Углы обрабатываются вручную — ' + Math.round(F.corners) + ' шт в смете.' : '') + '</p>';
-  document.getElementById('kDrop').textContent = DROP[F.system][0];
-  document.getElementById('kDropP').textContent = DROP[F.system][1] + (F.cornice ? ' У ниши под шторы — до 10 см локально.' : '');
-  /* что входит */
-  var inc = ['монтаж', 'закладные под свет'];
-  if(cnt(['fixture']) > 0) inc.push('светильники с лампами'); else inc.push('вывоз обрезков и упаковки');
-  document.getElementById('incl').innerHTML = '<b>В цену входит:</b> ' + inc.join(', ') + '. ' + (cnt(['fixture']) > 0 || !cnt(['spot-install','chandelier-install']) ? '' : 'Светильники и лампы — ваши, ставим и подключаем. ') + (F.cornice ? 'Карнизы для штор в нишу — отдельно.' : '') + inclExtra(inc);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-total]'), function(e){ e.textContent = money(t); });
+  var np = []; if(F.area) np.push(fq2(F.area) + NBSP + 'м²'); np.push(escT(F.brand), escT(SYS_NAME[F.system]));
+  if(F.spots) np.push('<span data-spots>' + plural(Math.round(F.spots), 'точка', 'точки', 'точек') + '</span>' + NBSP + 'света');
+  if(F.lines) np.push('линии ' + fq2(F.lines) + NBSP + 'м');
+  if(F.track) np.push('трек ' + fq2(F.track) + NBSP + 'м');
+  if(F.cornice) np.push('ниша под' + NBSP + 'шторы');
+  el('sNote').innerHTML = np.join(NBSP + '· ');
+  /* опции «по желанию»: сколько включено и на сколько это уже вошло в итог */
+  var nOpt = 0, optOn = 0, add = 0; ITEMS.forEach(function(it){ if(it.opt){ nOpt++; if(it.on){ optOn++; add += lineSum(it); } } });
+  var so = el('sOpt'); so.hidden = !nOpt;
+  if(nOpt) so.innerHTML = 'Опции по' + NBSP + 'желанию: включено <span data-optn>' + optOn + '</span>' + NBSP + 'из' + NBSP + nOpt + (add > 0 ? NBSP + '— ' + money(add) + NBSP + 'уже в' + NBSP + 'итоге' : '');
+  var sd = el('sDisc'); sd.hidden = !d;
+  if(d) sd.innerHTML = '<div><dt>Сумма по' + NBSP + 'позициям</dt><dd>' + money(g) + '</dd></div><div><dt>Скидка ' + fq2(DATA.discount) + NBSP + '%</dt><dd>−' + money(d) + '</dd></div>';
+}
+/* «Что важно знать»: три факта — примыкание, высота, протечка; гарантии здесь нет, у неё своя плита */
+var SYS_CARD = {
+  standard:['Вставка', 'Стеновой профиль со вставкой', 'Профиль по периметру, щель у стены закрывает гибкая вставка в цвет потолка. Подходит для любых стен.'],
+  shadow:['6 мм', 'Тёмный зазор вместо вставки', 'Потолок выглядит как гипсокартонный, но без швов и трещин. Нужны ровные стены.'],
+  seamless:['Без щели', 'Полотно вплотную к стене', 'Ни щели, ни вставки. Самый чистый вид.'],
+  float:['Парит', 'Парящий профиль', 'Лента за полотном по периметру: свет стекает по стенам, потолок будто висит в воздухе.'] };
+var DROP = { standard:['3–5 см', 'Стеновой профиль.'], shadow:['3–4 см', 'Теневой профиль.'], seamless:['3 см', 'Бесщелевое примыкание.'], float:['5–6,5 см', 'Парящий профиль с лентой за полотном.'] };
+function renderTerms(){
+  var F = flags(), sc = SYS_CARD[F.system], dr = DROP[F.system];
+  var cards = [[sc[0], sc[1], sc[2] + (F.corners ? ' Углы обрабатываются вручную — ' + Math.round(F.corners) + ' шт в смете.' : '')],
+    [dr[0], 'Заберёт высоты', dr[1] + (F.cornice ? ' У ниши под шторы — до 10 см локально.' : '')],
+    ['100 л/м²', 'Удержит при протечке', 'Вода собирается в «пузырь», сливаем через отверстие светильника, полотно возвращается на место.']];
+  el('facts').innerHTML = cards.map(function(c){ return '<li class="kp-card kp-fact"><p class="kp-num">' + escT(c[0]) + '</p><p class="kp-h3">' + escT(c[1]) + '</p><p class="kp-body">' + escT(c[2]) + '</p></li>'; }).join('');
+}
+/* принятие: подсказка, чем отправить сообщение, зависит от того, какие каналы связи у менеджера заполнены */
+function renderAccept(){
+  var ch = channels(profile().contacts || {}), has = function(k){ return ch.some(function(c){ return c.k === k; }); }, names = [];
+  if(has('max')) names.push('MAX'); if(has('tg')) names.push('Telegram');
+  /* список целиком: «в MAX, Telegram или звонком» (предлог — только перед мессенджерами, «или» — один раз) */
+  var via = names.length ? 'в' + NBSP + listRu(names.concat(has('phone') ? ['звонком'] : []), 'или') : has('phone') ? 'звонком' : '';
+  el('acLead').textContent = typo(names.length ? 'Подготовим сообщение менеджеру с этим составом — отправите его сами: ' + via + '.'
+    : has('phone') ? 'Подготовим сообщение менеджеру с этим составом — зачитайте его по телефону.'
+    : 'Подготовим сообщение менеджеру с этим составом — скопируйте его и отправьте тому, кто прислал вам ссылку.');
+  el('acHint').hidden = !CFG;   /* кнопка «Принять предложение» — платформы: в демо её нет, и ссылаться на неё нечего */
 }
 /* каждый блок рисуется сам: сбой в одном (необычная строка сметы) не должен оставить без контактов и фото */
 function renderAll(){
-  var list = EMPTY ? [renderEmpty, renderPhotos, renderPeople, renderOffer] : [renderVars, renderItems, renderSum, renderNodes, buildCut, renderPhotos, renderPeople, renderOffer];
+  var list = EMPTY ? [renderCover, renderIncluded, renderPhotos, renderPeople, renderOffer]
+    : [renderCover, renderVars, renderItems, renderSum, renderIncluded, renderTerms, renderNodes, buildCut, renderPhotos, renderPeople, renderOffer, renderAccept];
   list.forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
 }
-/* смета ещё пустая (черновик в OpMax): никаких цифр-примеров, только понятная заглушка в первом экране */
-function renderEmpty(){
-  document.getElementById('h1').textContent = 'Натяжной потолок';
-  document.getElementById('hsub').innerHTML = outcomeHtml();   /* результат из оффера виден и до появления сметы */
-}
 
-/* копирование: Clipboard API, а где он недоступен (фрейм, http) — через скрытое поле */
-function copyText(t, okMsg, failMsg){
+/* ============ 6. КОПИРОВАНИЕ, СООБЩЕНИЕ МЕНЕДЖЕРУ ============ */
+/* Clipboard API, а где он недоступен (фрейм, http) — через скрытое поле; результат сообщаем не всплывашкой, а там же, где нажали */
+function copyText(t, ok, fail){
   function fallback(){
-    var ok = false;
+    var done = false;
     try{ var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-      document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
-    toast(ok ? okMsg : (failMsg || 'Не удалось скопировать'));
+      document.body.appendChild(ta); ta.select(); done = document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+    (done ? ok : fail)();
   }
-  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ toast(okMsg); }, fallback);
-  else fallback();
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fallback); else fallback();
 }
-function copySpec(){
+/* текст на месте кнопки или строки меняется на 3 секунды */
+function flash(e, text){
+  if(!e) return;
+  if(e._was === undefined) e._was = e.textContent;
+  e.textContent = text; clearTimeout(e._t); e._t = setTimeout(function(){ e.textContent = e._was; e._was = undefined; }, 3200);
+}
+function say(text){ var s = el('msgState'); if(s) s.textContent = text; }
+function specText(){
   var co = profile().company || {};
   var L = ['Смета к ' + kpLabel() + (co.name ? ' — «' + co.name + '»' + (co.city ? ', ' + co.city : '') : '')];
   if(DATA.addr) L.push('Объект: ' + DATA.addr); L.push('');
@@ -647,115 +339,152 @@ function copySpec(){
   ITEMS.forEach(function(it){ if(it.on) L.push([it.name, unitLabel(it.unit), fq2(it.price), fq2(qty(it)), Math.round(lineSum(it))].join('\t')); });
   L.push(''); if(discount()){ L.push('Сумма\t' + Math.round(gross())); L.push('Скидка ' + fq2(DATA.discount) + '%\t−' + discount()); }
   L.push('ИТОГО\t' + total()); if(DATA.until) L.push('Цена действительна до ' + DATA.until);
-  copyText(L.join('\n'), 'Смета скопирована');
+  return L.join('\n');
 }
 function track(t, p){ try{ if(window.__kpTrack) window.__kpTrack(t, p || {}); }catch(e){} }
-/* «Согласовать» ничего не отправляет само — готовим сообщение менеджеру с составом, клиент отправляет его сам */
+/* «Подготовить сообщение менеджеру» ничего не отправляет и не принимает предложение: собираем текст с составом, клиент отправляет его сам.
+   На экране текст набран (неразрывные пробелы), в буфер обмена уходит plain1(approveText()) */
 function approveText(){
   var on = ITEMS.filter(function(it){ return it.on; });
-  var off = ITEMS.filter(function(it){ return it.on0 && !it.on; }).map(function(it){ return shortName(it); });
-  var add = ITEMS.filter(function(it){ return !it.on0 && it.on; }).map(function(it){ return shortName(it); });
-  var ch = ITEMS.filter(function(it){ return it.on && JSON.stringify(it.q) !== it.q0; }).map(function(it){ return shortName(it) + ' — ' + fq2(qty(it)) + ' ' + unitLabel(it.unit); });
-  return 'Здравствуйте! ' + (DATA.num ? 'КП № ' + DATA.num : 'Коммерческое предложение по натяжному потолку') + (DATA.addr ? ', объект ' + DATA.addr : '') + (DATA.variants ? ', вариант «' + DATA.variants[vi].title + '»' : '')
+  var off = ITEMS.filter(function(it){ return it.on0 && !it.on; }).map(function(it){ return it.name; });
+  var add = ITEMS.filter(function(it){ return !it.on0 && it.on; }).map(function(it){ return it.name; });
+  var ch = ITEMS.filter(function(it){ return it.on && JSON.stringify(it.q) !== it.q0; }).map(function(it){ return it.name + ' — ' + fq2(qty(it)) + ' ' + unitLabel(it.unit); });
+  return typo('Здравствуйте. ' + (DATA.num ? 'КП № ' + DATA.num : 'Коммерческое предложение по натяжному потолку') + (DATA.addr ? ', объект ' + DATA.addr : '') + (DATA.variants ? ', вариант «' + DATA.variants[vi].title + '»' : '')
     + ': состав подходит — ' + plural(on.length, 'позиция', 'позиции', 'позиций') + ' на ' + money(total()) + '.'
     + (off.length ? ' Без позиций: ' + off.join('; ') + '.' : '') + (add.length ? ' Добавить: ' + add.join('; ') + '.' : '') + (ch.length ? ' Другое количество: ' + ch.join('; ') + '.' : '')
-    + ' Подскажите, как оформить договор?';
+    + ' Подскажите, как оформить договор?');
 }
 function approve(){
-  var b = document.getElementById('okBox'), F = flags(), C = profile().contacts || {}, ch = channels(C);
-  var on = ITEMS.filter(function(it){ return it.on; }).length;
+  var ch = channels(profile().contacts || {}), on = ITEMS.filter(function(it){ return it.on; }).length, box = el('msg');
   track('accept_click', { total:total(), variant:DATA.variants ? DATA.variants[vi].title : '', items:on });
   var ph = ch.filter(function(c){ return c.k === 'phone'; })[0], mx = ch.filter(function(c){ return c.k === 'max'; })[0], tg = ch.filter(function(c){ return c.k === 'tg'; })[0];
+  var cls = 'kp-btn kp-btn--ghost kp-btn--sm';
   /* сначала — скопировать сообщение; мессенджер открывается следом, текст уже в буфере */
-  var btns = '<button type="button" class="btn p" data-act="copyApprove">Скопировать сообщение</button>'
-    + (mx ? chEl(mx, 'btn g', mx.copy ? 'MAX: скопировать номер' : 'Открыть MAX', 'max-accept', 'copyThen') : '')
-    + (tg ? chEl(tg, 'btn g', 'Telegram', 'tg-accept', 'copyThen') : '')
-    + (ph ? chEl(ph, 'btn g', 'Позвонить', 'phone-accept') : '');
-  b.innerHTML = '<b>' + plural(on, 'позиция', 'позиции', 'позиций') + ' на ' + money(total()) + '</b> — ' + esc(F.brand) + ', ' + SYS_NAME[F.system]
-    + (DATA.variants ? ', вариант «' + esc(DATA.variants[vi].title) + '»' : '') + '.<br>'
-    + (ch.length ? 'Скопируйте сообщение с этим составом и отправьте ' + (C.name ? 'менеджеру (' + esc(C.name) + ')' : 'нам') + ' — по нему подготовим договор.'
-                 : 'Скопируйте сообщение с этим составом и отправьте нам — по нему подготовим договор.')
-    + '<div class="okact">' + btns + '</div>';
-  b.classList.add('show'); b.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block:'center' });
+  el('msgHead').textContent = typo(plural(on, 'позиция', 'позиции', 'позиций') + ' на ' + money(total()));
+  el('msgText').textContent = approveText();
+  el('msgActs').innerHTML = '<button type="button" class="' + cls + '" data-act="copyMsg">' + ic('copy') + 'Скопировать сообщение</button>'
+    + (mx ? chEl(mx, cls, ic('chat') + (mx.copy ? 'MAX: скопировать номер' : 'Открыть MAX'), 'max-accept', 'copyThen') : '')
+    + (tg ? chEl(tg, cls, ic('tg') + 'Telegram', 'tg-accept', 'copyThen') : '')
+    + (ph ? chEl(ph, cls, ic('phone') + 'Позвонить', 'phone-accept') : '');
+  box.hidden = false; say('');
+  copyText(plain1(approveText()), function(){ say('Сообщение скопировано — вставьте его в мессенджер'); }, function(){ say('Скопируйте текст вручную'); });
+  box.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block:'center' }); box.focus({ preventScroll:true });
 }
-function go(id){ var el = document.getElementById(id); if(el) el.scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }
-var tt; function toast(m){ var el = document.getElementById('toastEl'); el.textContent = m; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ el.classList.remove('show'); }, 3200); }
+function go(id){ var e = document.getElementById(id); if(e) e.scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }
 
-/* ============ 6. ОДИН ОБРАБОТЧИК НА ВСЕ КЛИКИ ============
+/* ============ 7. ОДИН ОБРАБОТЧИК НА ВСЕ КЛИКИ ============
    На платформе строгая CSP (script-src 'nonce-…' 'strict-dynamic'): встроенные обработчики-атрибуты и ссылки-скрипты
    браузер блокирует. Поэтому в разметке только data-act="имя" (+ data-arg), data-track="канал" — для cta_click. */
 var ACT = {
   approve: function(){ approve(); },
-  copySpec: function(){ copySpec(); },
-  copyApprove: function(){ copyText(approveText(), 'Сообщение скопировано — вставьте его в мессенджер'); },
-  /* ссылка на мессенджер в блоке «Согласовать»: переход не отменяем, но сначала кладём сообщение в буфер */
-  copyThen: function(){ copyText(approveText(), 'Сообщение скопировано — вставьте его в чат'); },
-  copyMax: function(a){ copyText(a || '', 'Номер скопирован — найдите его в MAX', 'Номер для MAX: ' + (a || '')); },
+  copySpec: function(){ copyText(specText(), function(){ flash(el('copyLbl'), 'Смета скопирована'); }, function(){ flash(el('copyLbl'), 'Не удалось скопировать'); }); },
+  copyMsg: function(){ copyText(plain1(el('msgText').textContent), function(){ say('Сообщение скопировано — вставьте его в мессенджер'); }, function(){ say('Скопируйте текст вручную'); }); },
+  /* ссылка на мессенджер в сообщении менеджеру: переход не отменяем, но сначала кладём сообщение в буфер */
+  copyThen: function(){ copyText(plain1(approveText()), function(){ say('Сообщение скопировано — вставьте его в чат'); }, function(){}); },
+  copyMax: function(a, node){ var v = node.querySelector('.kp-cv') || el('msgState');
+    copyText(a || '', function(){ flash(v, 'Номер скопирован — найдите его в MAX'); }, function(){ flash(v, 'Номер для MAX: ' + a); }); },
   openLb: function(a){ openLb(parseInt(a, 10) || 0); },
   openNode: function(a){ openNode(parseInt(a, 10) || 0); },
-  /* «Схема»: разрез свёрнут по умолчанию, состояние — в hidden тела и aria-expanded кнопки */
   closeLb: function(){ closeLb(); },
   stepLb: function(a){ stepLb(parseInt(a, 10) || 1); },
-  go: function(a){ go(a); },
+  go: function(a, node, e){ if(e) e.preventDefault(); go(a); },
   setVar: function(a){ setVar(parseInt(a, 10) || 0); },
   tglVid: function(){ tglVid(); },
-  tglItem: function(a){ tglItem(parseInt(a, 10)); },
-  stepItem: function(a, el){ stepItem(parseInt(a, 10), parseInt(el.getAttribute('data-d'), 10) || 0); }
+  tglItem: function(a, node){ tglItem(parseInt(a, 10), node && node.type === 'checkbox' ? node.checked : undefined); },
+  stepItem: function(a, node){ stepItem(parseInt(a, 10), parseInt(node.getAttribute('data-d'), 10) || 0); },
+  /* «Скачать PDF»: на платформе — выгрузка /p/{slug}/pdf, вне её (демо, предпросмотр) — печать страницы в PDF */
+  pdf: function(a, node, e){ track('pdf_download'); if(node.getAttribute('data-real') !== '1'){ e.preventDefault(); window.print(); } }
 };
 document.addEventListener('click', function(e){
-  var t = e.target, el = t && t.closest ? t.closest('[data-act],[data-track]') : null;
-  if(!el) return;
-  var tr = el.getAttribute('data-track'); if(tr) track('cta_click', { channel:tr });
-  var f = ACT[el.getAttribute('data-act')]; if(!f) return;
-  if(el.tagName !== 'A') e.preventDefault();
-  f(el.getAttribute('data-arg'), el, e);
+  var t = e.target, n = t && t.closest ? t.closest('[data-act],[data-track]') : null;
+  if(!n) return;
+  var tr = n.getAttribute('data-track'); if(tr) track('cta_click', { channel:tr });
+  var f = ACT[n.getAttribute('data-act')]; if(!f) return;
+  if(n.tagName === 'INPUT') return;   /* тумблер: состояние берём из change, клик не отменяем */
+  if(n.tagName !== 'A') e.preventDefault();
+  f(n.getAttribute('data-arg'), n, e);
 });
-document.addEventListener('change', function(e){ var t = e.target; if(t && t.id === 'demoSel') loadDemo(t.value); });
+document.addEventListener('change', function(e){
+  var t = e.target; if(!t) return;
+  if(t.id === 'demoSel') loadDemo(t.value);
+  else if(t.id === 'demoOffer') loadDemo(el('demoSel').value);
+  else if(t.getAttribute && t.getAttribute('data-act') === 'tglItem') ACT.tglItem(t.getAttribute('data-arg'), t);
+});
+/* варианты сметы — группа переключателей: стрелки перебирают, Tab входит одним пунктом */
+document.addEventListener('keydown', function(e){
+  var t = e.target; if(!t || !t.getAttribute || t.getAttribute('role') !== 'radio') return;
+  var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+  if(!d || !DATA.variants) return; e.preventDefault(); setVar((vi + d + DATA.variants.length) % DATA.variants.length);
+});
 
-/* ============ 7. СТАРТ: KP_CONFIG от платформы либо демо ============ */
-/* шапка, срок, подвал — только из того, что пришло: номер, дату и срок не выдумываем */
-function renderHead(eyebrow){
-  document.getElementById('hNum').textContent = kpLabel();
-  document.getElementById('hDate').textContent = DATA.date; document.getElementById('hDateW').hidden = !DATA.date;
-  document.getElementById('hUntil').textContent = DATA.until; document.getElementById('hValid').hidden = !DATA.until;
-  var who = DATA.addr || DATA.client;
-  document.getElementById('hAddr').textContent = eyebrow || 'Натяжной потолок' + (who ? ' · ' + who : '');
-  document.getElementById('fLine').textContent = kpLabel() + (DATA.date ? ' от ' + DATA.date : '') + (DATA.until ? ' · действует до ' + DATA.until : '')
-    + (DATA.addr ? ' · объект: ' + DATA.addr : '') + (DATA.client ? ' · для: ' + DATA.client : '');
-}
-function boot(cfg, eyebrow){
-  var est = normEstimate(cfg);
+/* что клиент выбрал на странице: кнопка «Принять предложение» платформы (components/kp/accept.tsx) зовёт window.kpChoice() и прикладывает ответ к акцепту;
+   сервер сверяет индексы со сметой КП и сам пересчитывает итог (lib/accepted-choice.ts). Контракт знает только вариант и включённые «по желанию»
+   (индексы строк сметы) — количества в нём нет, поэтому при изменённых степпером количествах выбор не отдаём: сервер записал бы итог без них */
+window.kpChoice = function(){
+  try{
+    if(!DATA || EMPTY) return undefined;
+    if(ITEMS.some(function(it){ return JSON.stringify(it.q) !== it.q0; })) return undefined;
+    var on = []; ITEMS.forEach(function(it){ if(it.opt && it.on && it.i < 500 && on.length < 200) on.push(it.i); });
+    var c = { optional:on }; if(DATA.variants) c.variant = clamp(vi, 0, 20);
+    return c;
+  }catch(e){ return undefined; }
+};
+
+/* ============ 8. СТАРТ: KP_CONFIG от платформы либо демо ============ */
+function boot(cfg, example){
+  var est = normEstimate(cfg), dp = dateParts(cfg.date);
   DATA = { variants:est.variants, items:est.items, discount:clamp(numOf(cfg.discount), 0, 100),
-           num:cfg.num == null ? '' : String(cfg.num).trim(), date:fmtDate(cfg.date), until:fmtDate(cfg.until),
-           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim(), nodePhotos:normNodePhotos(cfg.nodePhotos), offer:normOffer(cfg.offer) };
+           num:cfg.num == null ? '' : String(cfg.num).trim(), date:fmtDate(cfg.date), until:isPast(cfg.until) ? '' : fmtDate(cfg.until),
+           dateLong:fmtLong(cfg.date), untilLong:isPast(cfg.until) ? '' : fmtLong(cfg.until, dp ? dp.y : new Date().getFullYear()),
+           addr:String(cfg.addr || '').trim(), client:String(cfg.client || '').trim(), nodePhotos:normNodePhotos(cfg.nodePhotos), offer:normOffer(cfg.offer),
+           requisites:String(cfg.requisites || '').trim().slice(0, 200), example:!!example };
   EMPTY = !DATA.variants && !DATA.items.length;
   document.body.classList.toggle('noest', EMPTY);
   vi = 0; load();
-  var ok = document.getElementById('okBox'); ok.classList.remove('show'); ok.innerHTML = '';
-  renderHead(eyebrow);
+  el('msg').hidden = true; say('');
+  ['nodes','terms','smeta','accept'].forEach(function(n){ setSec(n, !EMPTY); });
   renderAll();
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
-function loadDemo(key){ var d = DEMOS.filter(function(x){ return x.key === key; })[0]; if(d) boot(clone(d)); }
+/* образец оффера в демо — тоже «приходит с сервера»: строки набираем так же, как lib/typograf.ts */
+function typoDeep(o){ if(typeof o === 'string') return typo(o); if(Array.isArray(o)) return o.map(typoDeep);
+  if(o && typeof o === 'object'){ var r = {}; for(var k in o) r[k] = typoDeep(o[k]); return r; } return o; }
+function demoCfg(d){ var c = clone(d), on = el('demoOffer') && el('demoOffer').checked; if(on && typeof DEMO_OFFER !== 'undefined') c.offer = typoDeep(DEMO_OFFER); return c; }
+function loadDemo(key){ var d = DEMOS.filter(function(x){ return x.key === key; })[0]; if(d) boot(demoCfg(d)); }
+/* «Скачать PDF» на платформе ведёт на выгрузку документа: слаг — из адреса страницы /p/{slug} */
+(function(){ var m = location.pathname.match(/^\/p\/([^\/]+)\/?$/), b = document.getElementById('pdfBtn');
+  if(m && b){ b.href = '/p/' + m[1] + '/pdf'; b.setAttribute('data-real', '1'); } })();
+/* секции показываются, когда заполнены; при сбое старта класс всё равно ставится — обложка одна не должна остаться вместо страницы */
+try{
 if(CFG && CFG.demo === true){
   /* предпросмотр макета в OpMax («Новое КП»): встроенная смета с пометкой «Пример», без чьих-либо контактов,
      номер и сроки — только если их прислала платформа */
   var smp = DEMOS.filter(function(x){ return x.key === 'gaiduk'; })[0] || DEMOS[0];
-  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until, offer:CFG.offer },
-       'Пример сметы · натяжной потолок');
+  boot({ variants:clone(smp.variants || null), items:clone(smp.items || null), discount:smp.discount, num:CFG.num, date:CFG.date, until:CFG.until, offer:CFG.offer, requisites:CFG.requisites }, true);
 }
 else if(CFG) boot(CFG);   /* смета из OpMax; без позиций — пустое состояние, без чужих цифр */
 else {
-  var sel = document.getElementById('demoSel');
-  document.getElementById('demoBox').hidden = false;
-  sel.innerHTML = DEMOS.map(function(d){ return '<option value="' + esc(d.key) + '">' + esc(d.title) + '</option>'; }).join('');
-  var h = location.hash.replace(/^#/, '').split('&').map(function(p){ return p.split('='); }).filter(function(p){ return p[0] === 'demo'; })[0];
-  if(h && DEMOS.some(function(d){ return d.key === h[1]; })) sel.value = h[1];
-  loadDemo(sel.value);
+  /* демо-полоса есть только в сборке для GitHub Pages; в активе платформы её нет (KP_CONFIG есть всегда) — тогда грузим встроенную смету без переключателя */
+  var sel = el('demoSel'), dbox = el('demoBox');
+  if(sel && dbox){
+    dbox.hidden = false;
+    sel.innerHTML = DEMOS.map(function(d){ return '<option value="' + esc(d.key) + '">' + escT(d.title) + '</option>'; }).join('');
+    var hp = location.hash.replace(/^#/, '').split('&').map(function(p){ return p.split('='); });
+    var h = hp.filter(function(p){ return p[0] === 'demo'; })[0];
+    if(h && DEMOS.some(function(d){ return d.key === h[1]; })) sel.value = h[1];
+    if(hp.some(function(p){ return p[0] === 'offer' && p[1] === '1'; })) el('demoOffer').checked = true;
+  }
+  loadDemo(sel ? sel.value : DEMOS[0].key);
 }
-if('IntersectionObserver' in window){
-  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin:'0px 0px -8% 0px', threshold:.06 });
-  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
-} else document.querySelectorAll('.rv').forEach(function(el){ el.classList.add('in'); });
+} finally { document.querySelector('.kp').classList.add('pv-on'); }
+/* полоса «Итого … К решению» (только от 1024): видна, пока смета на экране, а её собственный «Итого» — нет */
+(function(){
+  var bar = document.getElementById('bar'), q = SEC.smeta, s = document.getElementById('sum');
+  if(!bar || !q || !q.parentNode || !s || !('IntersectionObserver' in window)) return;
+  var inQ = false, sumV = false;
+  function flag(){ bar.classList.toggle('is-on', inQ && !sumV); }
+  new IntersectionObserver(function(es){ inQ = es[es.length - 1].isIntersecting; flag(); }).observe(q);
+  new IntersectionObserver(function(es){ sumV = es[es.length - 1].isIntersecting; flag(); }).observe(s);
+})();
 
 })();

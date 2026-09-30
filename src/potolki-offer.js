@@ -2,33 +2,34 @@
    Фрагмент potolki-app.js: build.py вставляет его на место маркера-комментария OFFER_JS внутри той же функции-обёртки
    (отдельным файлом, чтобы app.js не рос). KP_CONFIG.offer платформа шлёт только макету с меткой data-kp-offer:
    {outcome, included[], proof{since,objects,reviews}, guarantee{kind,term,text,clause}, bonuses[{name,value ₽}], capacity{text}}.
-   В разметке заранее ничего нет — без оффера страница остаётся прежней до байта; каждая часть рисуется только при
-   заполненном поле, заглушек нет. Куда что идёт: outcome → подзаголовок первого экрана; included → плашки после
-   «В цену входит»; proof.objects → лид «Объекты»; capacity → полоса под «Цена действительна до» (в печати скрыта);
-   guarantee → карточка в «Что важно знать» и одна строка у кнопки «Согласовать»; kind:'none' («Гарантии нет») → карточки гарантии и строки
-   у кнопки нет вовсе; bonuses → под итогом сметы. Строки приходят с сервера уже с типографикой (неразрывные пробелы) — кладём как есть. */
+   Каждая часть рисуется своей секцией и только при заполненном поле: пустое поле — секции нет вовсе (setSec убирает её из DOM).
+   Куда что идёт: outcome → подзаголовок обложки (renderCover); included (+ автосписок из сметы) → «В цену входит»; proof → доказательства;
+   guarantee → плита и одна строка над кнопкой; kind:'none' («Гарантии нет») → плиты и строки нет; bonuses → бонусы; capacity → таблетка загрузки
+   (в печати скрыта). «Как в договоре» без срока, текста и пункта — всё равно гарантия: плита с текстом по умолчанию (решение основателя 30.09).
+   Строки приходят с сервера с типографикой lib/typograf.ts, но она не склеивает «без», «под», «при», «для» и не знает диапазонов «1–2» —
+   поэтому страница прогоняет их через typo() ещё раз (операция повторно безопасна). */
 var GAR_KINDS = ['contract','unconditional','conditional','anti'];   /* none обрабатывается отдельно (noGuarantee), незнакомый вид — молча выбрасываем */
-var NBSP = '\u00a0';
+var GLINE = document.getElementById('gLine');   /* строка гарантии над кнопкой: вставляется и убирается целиком */
+var GAR_DEFAULT = 'Сроки гарантии на полотно и на монтаж прописываются в договоре. Светильники меняются без снятия полотна.';
 function str(v){ return typeof v === 'string' ? v.trim() : typeof v === 'number' && isFinite(v) ? String(v) : ''; }
-/* для сравнения строк неразрывные пробелы сервера («за\u00a03 дня») приравниваем к обычным и сводим регистр */
-function plain(t){ return String(t).replace(/\u00a0/g, ' ').toLowerCase(); }
-/* берём известные ключи и только строки/числа, пустое и чужое молча выбрасываем; ключа нет или всё пусто → null.
-   «Как в договоре» без срока, текста и пункта — дефолт, а не заполнение (то же правило, что isOfferEmpty в lib/offer.ts) */
+/* для сравнения строк неразрывные пробелы сервера («за 3 дня») приравниваем к обычным и сводим регистр; без знаков препинания */
+function plain(t){ return String(t).replace(/ /g, ' ').toLowerCase(); }
+function words(t){ return ' ' + plain(t).replace(/[^a-zа-яё0-9]+/g, ' ').trim() + ' '; }
+/* берём известные ключи и только строки/числа, пустое и чужое молча выбрасываем; ключа нет или всё пусто → null */
 function normOffer(o){
   if(!o || typeof o !== 'object') return null;
   var r = { outcome:str(o.outcome), included:[], proof:{}, guarantee:null, noGuarantee:false, bonuses:[], capacity:'' }, seen = {}, g = o.guarantee, p = o.proof, c = o.capacity;
   (Array.isArray(o.included) ? o.included : []).forEach(function(s){ var t = str(s), k = plain(t); if(t && !seen[k] && r.included.length < 6){ seen[k] = 1; r.included.push(t); } });
   if(p && typeof p === 'object') ['since','objects','reviews'].forEach(function(k){ var n = numOf(p[k]); if(n > 0) r.proof[k] = Math.round(n); });
-  if(g && typeof g === 'object' && g.kind === 'none') r.noGuarantee = true;   /* менеджер выбрал «Гарантии нет»: встроенная карточка «Договор» уходит */
-  else if(g && typeof g === 'object' && GAR_KINDS.indexOf(g.kind) >= 0){ g = { kind:g.kind, term:str(g.term), text:str(g.text), clause:str(g.clause) };
-    r.guarantee = g.kind !== 'contract' || g.term || g.text || g.clause ? g : null; }
+  if(g && typeof g === 'object' && g.kind === 'none') r.noGuarantee = true;   /* менеджер выбрал «Гарантии нет»: плиты и строки у кнопки нет */
+  else if(g && typeof g === 'object' && GAR_KINDS.indexOf(g.kind) >= 0) r.guarantee = { kind:g.kind, term:str(g.term), text:str(g.text), clause:str(g.clause) };
   (Array.isArray(o.bonuses) ? o.bonuses : []).forEach(function(b){ var n = b && typeof b === 'object' ? str(b.name) : '', v = n ? numOf(b.value) : 0;
     if(n && v > 0 && r.bonuses.length < 3) r.bonuses.push({ name:n, value:v }); });
   if(c && typeof c === 'object') r.capacity = str(c.text);
   return r.outcome || r.included.length || Object.keys(r.proof).length || r.guarantee || r.noGuarantee || r.bonuses.length || r.capacity ? r : null;
 }
 /* одна строка гарантии — как guaranteeLine в lib/offer.ts (текст тот же, отличие только в неразрывных пробелах: тире не уезжает
-   в начало строки, «п. 5.2 договора» и «24 месяца» не рвутся): карточка, кнопка и блочное КП не разойдутся между собой */
+   в начало строки, «п. 5.2 договора» и «24 месяца» не рвутся): плита, строка над кнопкой и блочное КП не разойдутся между собой */
 function guaranteeLine(g){
   if(!g) return null;
   if(g.kind === 'anti') return g.text ? 'Возврата нет' + NBSP + '— ' + g.text : null;   /* голое «возврата нет» отталкивает — без причины строки нет */
@@ -37,26 +38,73 @@ function guaranteeLine(g){
     return head + NBSP + '— ' + (/договор/i.test(c) ? c : c + NBSP + 'договора'); }   /* «п. 5.2 договора» целиком — слово не дублируем */
   return g.kind === 'contract' ? head + NBSP + '— как в' + NBSP + 'договоре' : head;
 }
-function outcomeHtml(){ var O = DATA.offer; return O && O.outcome ? '<b>' + esc(O.outcome) + '</b>' : ''; }
-/* строки «Что входит» из оффера — плашками после автоматического списка; то, что смета уже назвала, второй раз не пишем */
-function inclExtra(inc){ var O = DATA.offer, ext = O ? O.included.filter(function(s){ return inc.indexOf(plain(s)) < 0; }) : [];
-  return ext.length ? '<span class="incx">' + ext.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</span>' : ''; }
-/* «120 объектов с 2015 года. » — только объекты (и год, если есть): отзывов в этом макете нет, число не выдумываем */
-function proofLead(){ var P = DATA.offer && DATA.offer.proof; return P && P.objects ? plural(P.objects, 'объект', 'объекта', 'объектов') + (P.since ? ' с ' + P.since + ' года' : '') + '. ' : ''; }
-/* элемент оффера живёт, только пока есть поле: создаём при первом рендере, убираем, если поля нет — заглушек нет */
-function slot(id, want, make){ var el = document.getElementById(id); if(!want){ if(el) el.parentNode.removeChild(el); return null; } if(!el){ el = make(); el.id = id; } return el; }
+/* «В цену входит»: сначала строки продавца, затем то, что следует из сметы (монтаж, закладные, вывоз, свет); одно и то же дважды не пишем, всего до шести */
+function autoIncluded(){
+  if(EMPTY) return [];
+  var fx = cnt(['fixture']) > 0, out = ['Монтаж', 'Закладные под свет', fx ? 'Светильники с лампами' : 'Вывоз обрезков и упаковки'];
+  if(!fx && cnt(['spot-install', 'chandelier-install']) > 0) out.push('Светильники и лампы — ваши, ставим и подключаем');
+  return out;
+}
+/* «Не входит» — только когда в смете есть ниша под шторы, а карниза для штор нет: иначе фраза спорит со строкой сметы
+   («Не входит: карнизы» рядом с «Встроенный карниз … 56 400 ₽» — покупатель не поймёт, входит ли карниз в цену) */
+function nicheWithoutRail(){
+  var rows = ITEMS.filter(function(it){ return it.on && it.role === 'cornice'; });
+  return rows.length > 0 && !rows.some(function(it){ return /карниз|гардин/i.test(it.name); });
+}
+function renderIncluded(){
+  var O = DATA.offer, lines = O ? O.included.map(typo) : [], have = lines.map(words);
+  autoIncluded().forEach(function(t){
+    var w = words(t); if(lines.length >= 6 || have.some(function(h){ return h.indexOf(w) >= 0; })) return;   /* «Профиль, полотно, монтаж» уже говорит про монтаж */
+    have.push(w); lines.push(typo(t));
+  });
+  setSec('offer-included', lines.length > 0); if(!lines.length) return;
+  el('incl').innerHTML = lines.map(function(t){ return '<li><span class="kp-check">' + ic('check') + '</span><span class="kp-item">' + esc(t) + '</span></li>'; }).join('');
+  /* исключение — не сноска, а строка того же кегля со знаком «минус»: деньги, которые читаются мимоходом, превращаются в жалобу */
+  var cor = !EMPTY && nicheWithoutRail(), x = el('inclx'); x.hidden = !cor; if(cor) el('inclxT').textContent = typo('Карнизы для штор в нишу — отдельно');
+}
+function cityIn(c){ return { 'Новороссийск':'Новороссийске' }[c] || ''; }
+function renderProof(){
+  var P = DATA.offer && DATA.offer.proof, keys = P ? Object.keys(P) : [];
+  setSec('offer-proof', keys.length > 0); if(!keys.length) return;
+  var co = profile().company || {}, ci = cityIn(co.city), h = '';
+  if(keys.length === 1 && P.objects){
+    h = '<div class="kp-card pv-proof"><p class="kp-num kp-tab">' + group(P.objects) + '</p><div class="pv-proof-t"><p class="kp-h3">' + escT(pluralW(P.objects, 'объект', 'объекта', 'объектов') + (ci ? ' в ' + ci : '')) + '</p>'
+      + (SEC.works && SEC.works.parentNode ? '<p class="kp-body kp-muted">' + escT('Фото и видео с объектов — ниже, в разделе «Наши работы»') + '</p>' : '') + '</div></div>';
+  } else {
+    var it = [];
+    if(P.since) it.push([String(P.since), 'работаем с этого года']);
+    if(P.objects) it.push([group(P.objects), pluralW(P.objects, 'объект', 'объекта', 'объектов')]);
+    if(P.reviews) it.push([group(P.reviews), pluralW(P.reviews, 'отзыв', 'отзыва', 'отзывов')]);
+    h = '<div class="kp-stats kp-stats--' + it.length + '">' + it.map(function(x){ return '<div class="kp-stat"><p class="kp-num kp-tab">' + x[0] + '</p><p class="kp-lead">' + escT(x[1]) + '</p></div>'; }).join('') + '</div>';
+  }
+  SEC['offer-proof'].innerHTML = h;
+}
+function renderGuarantee(){
+  var O = DATA.offer, g = O && O.guarantee, line = g ? guaranteeLine(g) : null;
+  setSec('offer-guarantee', !!line);
+  /* текст под строкой: своё объяснение продавца; у «как в договоре» без него — текст по умолчанию; у анти-гарантии причина уже в самой строке */
+  var t = g ? (g.kind === 'anti' ? '' : g.text || (g.kind === 'contract' ? GAR_DEFAULT : '')) : '', gt = el('gText');
+  el('gCard').textContent = typo(line || ''); gt.textContent = typo(t); gt.hidden = !t;
+  /* та же строка — над кнопкой в «Состав подходит?»; нет гарантии — элемента в DOM нет */
+  var gl = GLINE, plate = SEC.accept.querySelector('.kp-accept');
+  if(line){ gl.lastElementChild.textContent = typo(line); if(!gl.parentNode) plate.parentNode.insertBefore(gl, plate); }
+  else if(gl.parentNode) gl.parentNode.removeChild(gl);
+}
+function renderBonus(){
+  var B = DATA.offer ? DATA.offer.bonuses : [], sum = 0;
+  setSec('offer-bonus', B.length > 0); if(!B.length) return;
+  B.forEach(function(b){ sum += b.value; });
+  el('h-bonus').textContent = typo('Бонусы на ' + moneyP(sum) + ' — без доплаты');
+  /* цена по каталогу приглушённо: бонус — не позиция к оплате, жирная цена читалась бы как ещё одна строка сметы */
+  el('bon').innerHTML = B.map(function(b){ return '<li class="kp-bn-li"><span class="kp-item">' + escT(b.name) + '</span><span class="kp-bn"><span class="kp-tag">без' + NBSP + 'доплаты</span><span class="kp-sm kp-muted kp-tab">' + moneyP(b.value) + ' по' + NBSP + 'каталогу</span></span></li>'; }).join('');
+}
+/* загрузка и срок цены: две честные строки; capacity в печати не показываем никогда, срок цены печатается */
+function renderCapacity(){
+  var O = DATA.offer, pills = '';
+  if(O && O.capacity) pills += '<p class="kp-pill kp-noprint" id="hCap"><span class="kp-dot" aria-hidden="true"></span>' + escT(O.capacity) + '</p>';
+  if(DATA.untilLong && !EMPTY) pills += '<p class="kp-pill" id="hValid"><span class="kp-dot" aria-hidden="true"></span>' + escT('Цена действует до ' + DATA.untilLong + ' — потом пересчитаем по новому прайсу') + '</p>';
+  setSec('offer-capacity', !!pills); el('strip').innerHTML = pills;
+}
 function renderOffer(){
-  var O = DATA.offer, g = O && O.guarantee, line = guaranteeLine(g), sum = 0;
-  var cap = slot('hCap', O && O.capacity, function(){ var d = document.createElement('div'), v = document.getElementById('hValid'); d.className = 'valid capline'; v.parentNode.insertBefore(d, v.nextSibling); return d; });
-  if(cap) cap.textContent = O.capacity;
-  /* карточку «Гарантия» ищем по заголовку, не по id — id в разметке изменил бы страницу без оффера. Крупно — срок (нет → «Договор»
-     остаётся), текст — из оффера (нет → прежний); у анти-гарантии текст — та же строка, что у кнопки, иначе причина без вопроса */
-  var card = (g || (O && O.noGuarantee)) && Array.prototype.filter.call(document.querySelectorAll('.know .k'), function(k){ var b = k.querySelector('b'); return b && b.textContent === 'Гарантия'; })[0];
-  if(card && O.noGuarantee){ var kn = card.parentNode; kn.removeChild(card); kn.classList.add('k3'); }   /* «Гарантии нет»: карточки нет, сетка из трёх колонок без дыры */
-  else if(card){ if(g.term && g.kind !== 'anti') card.querySelector('.kv').textContent = g.term; if(g.text) card.querySelector('p').textContent = g.kind === 'anti' ? line : g.text; }   /* у анти-гарантии срока в строке нет — крупное слово не подменяем */
-  var bon = slot('bon', O && O.bonuses.length, function(){ var d = document.createElement('div'), r = document.getElementById('sRows'); d.className = 'bon'; r.parentNode.insertBefore(d, r.nextSibling); return d; });
-  if(bon){ O.bonuses.forEach(function(b){ sum += b.value; });
-    bon.innerHTML = '<b>Бонусы на ' + moneyP(sum) + ' — без доплаты</b>' + O.bonuses.map(function(b){ return '<span>' + esc(b.name) + ' <em>(' + moneyP(b.value) + ')</em></span>'; }).join(''); }
-  var gl = slot('gLine', line, function(){ var d = document.createElement('small'), a = document.querySelector('#accept .acb'); d.className = 'gline'; a.insertBefore(d, a.firstChild); return d; });
-  if(gl) gl.textContent = line;
+  [renderProof, renderGuarantee, renderBonus, renderCapacity].forEach(function(f){ try{ f(); }catch(e){ if(window.console) console.error(e); } });
 }

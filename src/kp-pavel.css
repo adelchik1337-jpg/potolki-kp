@@ -1,0 +1,50 @@
+/* ============================================================================
+   themes-kp/pavel.css · «Высокий уровень» (макет Павла, натяжные потолки) · КП получателя в манере Фокуса v1.0 · 30.09.2026
+   СЕДЬМАЯ тема: не выбирается менеджерами и не входит в lib/themes.ts. Это бренд-файл для ОДНОГО макета со своим дизайном (assets/custom-kp/vysokiy-uroven.html).
+   Макет самодостаточен (всё инлайном, ≤2 МБ, шрифты системные), поэтому base-kp-fokus.css и эти переменные build.py вкладывает в <style> при сборке.
+   Что берётся из бренда Павла (разведка 30.09): палитра Apple-style (canvas #FFFFFF, surf #F5F5F7, ink #1D1D1F, muted #6E6E73, hair #D2D2D7, один акцент blue #0071E3),
+   системный стек SF Pro / Helvetica Neue / Segoe UI / Roboto, радиусы 18 / пилюли, графит логотипа #1D2C38 как поле обложки.
+   Что уходит: зелёный #34C759 (тумблер, скидка, «позвонить») — акцент один; жёлтый #FFC81A остаётся только в логотипе.
+   [НОВОЕ] — значения, которых нет в макете сейчас (посчитаны ради AA).
+   ============================================================================ */
+
+[data-kp-theme="pavel"]{
+  --kp-heading-font:-apple-system,"SF Pro Display","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --kp-body-font:-apple-system,"SF Pro Text","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --kp-fw-head:600;
+  --kp-fw-strong:600;
+  --kp-fw-mid:500;
+  --kp-fw-body:400;
+  --kp-lh-hero:1.02;
+  --kp-hero-d:72px;
+  --kp-hero-t:52px;
+  --kp-hero-m:36px;
+
+  --kp-bg:#f5f5f7;                 /* surf макета: серый фон с белыми карточками, как #F6F6F6 у Фокуса */
+  --kp-surface:#ffffff;
+  --kp-text:#1d1d1f;
+  --kp-muted:#68686d;              /* [ИЗМЕНЕНО] было #6E6E73: 4.40:1 на tint не проходило AA. #68686D: 5.09 на bg, 5.54 на surface, 4.81 на tint */
+  --kp-accent:#0066cc;             /* [ИЗМЕНЕНО] было #0071E3: 4.31:1 на сером фоне для ссылок. #0066CC — синий ссылок Apple: 5.11 на bg, 5.57 на surface, 4.83 на tint, белый на нём 5.57 */
+  --kp-accent-hover:#0058b0;       /* [НОВОЕ] белый на нём 6.95:1 */
+  --kp-accent-contrast:#ffffff;
+  --kp-tint:#e6f0fa;               /* [НОВОЕ] 10% акцента на surface */
+  --kp-border:#d2d2d7;
+  --kp-rule:#e8e8ed;               /* div макета */
+  --kp-field:#86868b;              /* [НОВОЕ] граница поля и дорожка тумблера */
+  --kp-page-bg:#f5f5f7;
+
+  --kp-cover-gradient:linear-gradient(160deg,#1d2c38 0%,#1d2c38 100%);
+  --kp-cover-bg:#1d2c38;           /* графит логотипа */
+  --kp-cover-fg:#ffffff;
+  --kp-cover-fg-2:#c8d2dc;         /* [НОВОЕ] */
+  --kp-cover-line:#8fa3b3;         /* [НОВОЕ] */
+
+  --kp-radius:18px;
+  --kp-radius-lg:28px;             /* [НОВОЕ] плита */
+  --kp-radius-photo:11px;
+  --kp-radius-btn:999px;
+  --kp-card-bw:0px;
+  --kp-card-shadow:none;
+  --kp-mark-w:0px;
+  --kp-mark-h:0px;
+}

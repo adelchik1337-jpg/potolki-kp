@@ -1,286 +1,162 @@
-<style>
-/* ——— блоки в Apple-стиле ——— */
-.demo{background:#1D1D1F;color:#fff;font-size:13px;padding:9px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;letter-spacing:-.2px}
-.demo b{font-size:12px;font-weight:500;color:#A1A1A6}
-.demo select{background:#2A2A2C;color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;max-width:300px}
-.demo small{color:#86868B;font-size:12px;margin-left:auto}
-@media(max-width:700px){.demo small{display:none}}
-.hero{padding:clamp(40px,6vw,72px) 0 clamp(28px,4vw,48px)}
-.hrow{display:block}
-.price{font-size:clamp(40px,6.4vw,80px);font-weight:600;letter-spacing:-.9px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:18px}
-.price small{display:block;font-size:14px;font-weight:500;color:var(--mut);letter-spacing:-.224px;margin-bottom:6px}
-.hsub{margin-top:12px;font-size:17px;color:var(--mut);line-height:1.47;letter-spacing:-.374px;text-wrap:balance}   /* результат из оффера: без висячего «с» и вдовы в конце */
-.hsub b{color:var(--ink);font-weight:500}
-.cut{position:relative;background:var(--surf);border-radius:var(--r-lg);padding:22px 22px 14px;margin-top:28px;overflow:hidden}
-.cut svg{width:100%;height:auto;display:block}
-.leg{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.leg span{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2);background:var(--surf);border-radius:980px;padding:6px 14px 6px 6px;letter-spacing:-.224px}
-.leg span i{font-size:11px;font-weight:600;color:#fff;background:var(--blue);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;flex-shrink:0}
-.leg span b{color:var(--ink);font-weight:500}
-.leg span em{font-style:normal;color:var(--mut);font-variant-numeric:tabular-nums}
-@media(max-width:600px){.cut{padding:12px 10px 8px}.leg span{font-size:13px}}
-/* плитки узлов: при .wrap 1024 auto-fill даёт 2 / 3 / 4 колонки на 390 / 768 / 1440; на телефоне — всегда две.
-   auto-fill, не auto-fit: пустые колонки остаются, и одна-две плитки не растягиваются на всю ширину (4:3 → квадрат в 700px) */
-.nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:24px}
-@media(max-width:700px){.nodes{grid-template-columns:1fr 1fr}}
-.nodes .ph2 .cap{font-size:14px}
-/* заглушка без фото — пиктограмма и название узла в цветах карточек «Что важно знать»; это div, не кнопка */
-.nodes .ph2.ico{display:grid;place-items:center;cursor:default;padding:0 12px 36px}
-.nodes .ico svg{width:100%;max-width:150px;height:auto;display:block}
-.nodes .ico .cap{color:var(--ink);background:none;padding-top:0}
-/* «Схема»: разрез свёрнут; в печати (PDF платформы) всегда развёрнут — id+атрибут перевешивают общее [hidden] */
-.scheme{margin-top:18px}
-#cut-body .cut{margin-top:14px}
-@media print{#cut-body[hidden]{display:block!important}}
-.vars{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
-.var{flex:1;min-width:220px;border:2px solid transparent;border-radius:var(--r-lg);padding:16px 18px;background:var(--surf);cursor:pointer;transition:.15s;text-align:left;display:flex;align-items:center;gap:14px}
-.var:hover{background:#EFEFF2}
-.var.on{border-color:var(--blue);background:var(--canvas)}
-.var .vt{flex:1;min-width:0}
-.var b{display:block;font-size:17px;font-weight:600;letter-spacing:-.374px}
-.var small{display:block;color:var(--mut);font-size:14px;margin-top:2px;letter-spacing:-.224px}
-.var .vp2{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.374px;white-space:nowrap;text-align:right}
-.var .vd{display:block;font-size:12px;font-weight:500;color:var(--mut);margin-top:3px}
-.var.on .vd{color:var(--blue)}
-/* смета */
-.rg{display:grid;grid-template-columns:1fr 340px;gap:24px;margin-top:26px;align-items:start}
-@media(max-width:980px){.rg{grid-template-columns:1fr}}
-.grp{margin-top:20px}
-.grp:first-child{margin-top:0}
-.grp .gh{font-size:14px;color:var(--mut);font-weight:500;margin-bottom:8px;display:flex;justify-content:space-between;letter-spacing:-.224px;padding:0 4px}
-.grp .gh span:last-child{font-variant-numeric:tabular-nums;color:var(--ink)}
-.it{display:flex;align-items:center;gap:12px;border-radius:var(--r-md);padding:12px 16px;background:var(--canvas);margin-top:6px;transition:.13s}
-.sec:not(.w) .it{background:var(--surf)}
-.it.off{opacity:.45}
-.it .itx{flex:1;min-width:0;font-size:15px;font-weight:500;line-height:1.3;letter-spacing:-.2px}
-.it .itx small{display:block;color:var(--mut);font-size:13px;font-weight:400;font-variant-numeric:tabular-nums;margin-top:2px}
-.it .itp{font-size:15px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
-.it.off .itp{text-decoration:line-through;color:var(--mut)}
-.it .sb{display:flex;border-radius:8px;overflow:hidden;background:var(--surf);flex-shrink:0}
-.sec.w .it .sb{background:var(--surf)}
-.sec:not(.w) .it .sb{background:var(--canvas)}
-.it .sb button{width:30px;height:30px;border:none;background:none;font-size:17px;color:var(--blue);cursor:pointer;line-height:1;font-weight:500}
-.it .sb span{width:36px;line-height:30px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.it .sw{width:38px;height:24px;border-radius:12px;background:#E9E9EB;position:relative;flex-shrink:0;transition:.2s;cursor:pointer;border:none;padding:0}
-.it .sw:after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:.2s}
-.it:not(.off) .sw{background:var(--green)}
-.it:not(.off) .sw:after{transform:translateX(14px)}
-.sum .btn2{width:100%;justify-content:center;margin-top:14px;padding:12px;font-size:16px}
-.incl{margin-top:18px;font-size:14px;color:var(--mut);line-height:1.5;max-width:70ch;letter-spacing:-.224px}
-.incl b{color:var(--ink2);font-weight:500}
-/* что важно знать */
-.know{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:14px;margin-top:24px}
-@media(max-width:980px){.know{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.know{grid-template-columns:1fr}}
-.k svg{width:100%;height:auto;display:block;max-height:110px;margin-bottom:10px}
-.k .kv{font-size:32px;font-weight:600;letter-spacing:-.4px;line-height:1;font-variant-numeric:tabular-nums}
-.k .kv+b{margin-top:10px;font-size:17px}
-.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
-.ph2{aspect-ratio:4/3;border-radius:var(--r-lg);overflow:hidden;background:var(--canvas);position:relative;border:none;padding:0;cursor:zoom-in;display:block;width:100%;font:inherit;text-align:left}
-.sec:not(.w) .ph2{background:var(--surf)}
-.ph2 img{width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block;transition:transform .5s}
-.ph2:hover img{transform:scale(1.03)}
-.ph2 .pl{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--mut2);text-align:center;padding:12px;line-height:1.45;letter-spacing:-.2px}
-.ph2 .cap,.vcard .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 14px 11px;font-size:13px;line-height:1.35;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.62));letter-spacing:-.08px}
-.vcard{grid-row:span 2;border-radius:var(--r-lg);overflow:hidden;position:relative;background:#111;min-height:0}
-.vcard video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.vbtn{position:absolute;right:12px;top:12px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;display:grid;place-items:center}
-.vbtn svg{width:14px;height:14px}
-@media(max-width:700px){.vbtn{width:44px;height:44px;right:10px;top:10px}}
-@media(max-width:700px){.photos{grid-template-columns:1fr 1fr;gap:10px}.vcard{grid-column:1/-1;grid-row:auto;aspect-ratio:2/3}}
-.more{margin-top:18px}
-/* лайтбокс */
-.lb{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 12px 20px}
-.lb img{max-width:100%;max-height:calc(100vh - 140px);border-radius:12px;display:block;object-fit:contain}
-.lb .lbc{color:#fff;font-size:15px;margin-top:14px;text-align:center;letter-spacing:-.2px;max-width:60ch}
-.lb .lbc small{display:block;color:#A1A1A6;font-size:13px;margin-top:3px}
-.lb button{position:absolute;border:none;background:rgba(255,255,255,.14);color:#fff;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;display:grid;place-items:center;line-height:1}
-.lb button:hover{background:rgba(255,255,255,.24)}
-.lb .x{top:10px;right:12px}.lb .pv{left:14px;top:50%}.lb .nx{right:14px;top:50%}
-@media(max-width:600px){.lb .pv,.lb .nx{background:rgba(0,0,0,.42)}.lb .pv{left:8px}.lb .nx{right:8px}}
-/* шапка: логотип */
-.brand{display:flex;align-items:center;flex-shrink:0;line-height:0}
-.brand svg,.brand img{height:26px;width:auto;display:block}
-.brand .mk{display:none}
-@media(max-width:600px){.brand .full{display:none}.brand .mk{display:block;height:30px}}
-/* менеджер и команда */
-.mgr{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
-.mgr.noteam{grid-template-columns:1fr}
-.mgr.noteam .cts{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-@media(max-width:820px){.mgr{grid-template-columns:1fr}}
-.team{margin:0;border-radius:var(--r-lg);overflow:hidden;position:relative;aspect-ratio:3/2;background:var(--surf)}
-.team img{width:100%;height:100%;object-fit:cover;display:block}
-.team figcaption{position:absolute;left:0;right:0;bottom:0;padding:30px 16px 12px;color:#fff;font-size:14px;background:linear-gradient(transparent,rgba(0,0,0,.55));letter-spacing:-.2px}
-.acb{display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:260px}
-.acb small{font-size:13px;color:var(--mut);line-height:1.4;letter-spacing:-.08px}
-.who .wl{font-size:14px;color:var(--mut);font-weight:500;letter-spacing:-.224px}
-.who .wn{font-size:clamp(26px,3vw,32px);font-weight:600;letter-spacing:-.4px;line-height:1.1;margin-top:4px}
-.who .wr{font-size:15px;color:var(--mut);margin-top:4px;letter-spacing:-.2px}
-/* пустая смета (черновик OpMax без позиций): прячем всё, что считается из сметы */
-body.noest .needest{display:none!important}
-.empty{display:none;margin-top:28px;border:1px dashed var(--line2);border-radius:var(--r-lg);padding:clamp(22px,4vw,36px);background:var(--surf);
-  font-size:clamp(17px,2vw,21px);font-weight:500;letter-spacing:-.3px;line-height:1.35;color:var(--ink2)}
-.empty small{display:block;margin-top:6px;font-size:14px;font-weight:400;color:var(--mut);letter-spacing:-.2px}
-body.noest .empty{display:block}
-/* оффер продавца (KP_CONFIG.offer): полоса загрузки продолжает «Цена действительна до» и не печатается; плашки «что входит»;
-   бонусы под итогом — зелёные, как подтверждение «согласовано»; строка гарантии — над кнопкой «Согласовать», у точки решения */
-body:not(.noest) #hValid:not([hidden])+.capline{padding-top:0}
-@media print{.capline{display:none!important}}
-.incl .incx{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:10px}
-.incl .incx span{background:var(--canvas);border-radius:980px;padding:5px 12px;color:var(--ink2);font-weight:500}
-.sum .bon{margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:#E9F7EE;font-size:14px;color:#1E7A3C;line-height:1.45;letter-spacing:-.2px}
-.sum .bon b{display:block;font-weight:600}
-.sum .bon span{display:block;margin-top:3px}
-.sum .bon em{font-style:normal;white-space:nowrap}   /* цена бонуса не рвётся на «(1 / 500 ₽)» на телефоне */
-.acb .gline{font-size:15px;color:var(--ink);font-weight:500;letter-spacing:-.2px;text-wrap:balance}
-.know.k3{grid-template-columns:1.4fr 1fr 1fr}   /* «Гарантии нет»: карточки гарантии нет — три колонки без дыры справа */
-@media(max-width:980px){.know.k3{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.know.k3{grid-template-columns:1fr}}
-</style>
+<!-- «Высокий уровень» (Новороссийск): макет КП в манере Фокуса, бренд Павла сохранён (темы kp-base.css + kp-pavel.css).
+     Порядок секций фиксирован, каждая помечена data-kp-block:
+     cover → offer-included → nodes → offer-proof → works → offer-guarantee → offer-bonus → terms → offer-capacity → smeta → accept → contacts.
+     Секции оффера и «Контакты» скрипт убирает из DOM целиком, если поле пусто (ни заголовка, ни зазора). Неразрывные пробелы в статичном тексте ставит build.py. -->
+<div class="kp" data-kp-theme="pavel" data-kp-doc="full" data-kp-accept="platform"><div class="kp-w">
 
-<header class="top">
-  <div class="topin">
-    <span class="brand" id="brand"></span>
-    <span class="stamp"><b id="hNum">КП</b><span class="hid" id="hDateW" hidden> · <span id="hDate"></span></span></span>
-    <span class="stamp hid" id="hMgr"></span>
-    <nav class="tnav" id="hNav"></nav>
-  </div>
-</header>
-<div class="valid needest" id="hValid" hidden>Цена действительна до <span id="hUntil"></span></div>
-<div class="demo" id="demoBox" hidden><b>Шаблон · реальные сметы Павла</b><select id="demoSel" aria-label="Демо-смета"></select><small>На платформе этой полосы нет — смета приходит из OpMax</small></div>
-
-<!-- ПОТОЛОК -->
-<section class="sec hero" data-kp-block="cover">
-  <div class="wrap">
-    <div class="hrow">
-      <div>
-        <span class="no" id="hAddr">Натяжной потолок</span>
-        <h1 style="margin-top:10px" id="h1"></h1>
-        <p class="hsub" id="hsub"></p>
-      </div>
-      <div class="price num needest"><small>Итого</small><span id="hTotal"></span></div>
-    </div>
-
-    <div class="empty" id="emptyBox">Смета появится здесь — добавьте позиции в редакторе OpMax<small>Итог, разрез потолка и варианты построятся по позициям сметы сами.</small></div>
-    <div class="nodes needest" id="nodes"></div>
-    <div class="scheme needest">
-      <!-- Кнопки «Показать схему» нет (основатель, 29.09.2026): клиенту схема не нужна,
-           на экране её не показываем; в печати/PDF она разворачивается CSS-правилом
-           @media print — для бригады монтажа. -->
-      <div id="cut-body" hidden>
-        <div class="cut" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
-        <div class="leg" id="leg"></div>
-      </div>
-    </div>
-
-    <div id="varsPan" class="needest" style="display:none">
-      <div class="vars" id="vars"></div>
-    </div>
-  </div>
-</section>
-
-<!-- СМЕТА -->
-<section class="sec w needest" id="smeta" data-kp-block="smeta">
-  <div class="wrap">
-    <span class="no">Смета</span>
-    <h2 style="margin-top:10px">Состав и цена</h2>
-    <p class="lead" style="margin-top:8px">Позиции «по желанию» можно включить, выключить или изменить количество — состав наверху пересчитается сам. Остальное входит в систему потолка и не убирается.</p>
-    <div class="rg">
-      <div id="items"></div>
-      <aside>
-        <div class="sum">
-          <div class="sl">Итого</div>
-          <div class="sv num" id="sTotal"></div>
-          <div class="sn" id="sNote"></div>
-          <div id="sRows"></div>
-          <button type="button" class="btn btn2" style="background:var(--ink-b);color:#fff" data-act="approve">Согласовать</button>
-          <button type="button" class="btn btn2 g" style="margin-top:8px" data-act="copySpec">Скопировать смету</button>
-        </div>
-      </aside>
-    </div>
-    <p class="incl" id="incl"></p>
-    <div class="edit">
-      <b>Служебная панель — только по ссылке с #edit</b>
-      <ul>
-        <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional, image}], contacts, media}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит плитки узлов и разрез. Единицы: м2/м²/кв.м → м², м.п/пог.м/мп/м → м, шт → счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить; тумблер есть только у таких строк, обязательные не отключаются. <code>image:{url}</code> — фото узла, привязанное к позиции в каталоге OpMax: встаёт на плитку в первом экране раньше библиотечного.</li>
-        <li>Два варианта одному клиенту: <code>variants:[{title, note, items}]</code> вместо <code>items</code>.</li>
-        <li><code>qty</code> — число (всё в «Общая») или объект <code>{"Общая":2.8,"Детская":3.1}</code>.</li>
-        <li>Номер, дата и срок — только из конфига: нет <code>num</code> — в шапке «КП» без номера, нет <code>until</code> — полосы «Цена действительна до» нет. Ничего не выдумывается.</li>
-        <li>Конфиг без сметы (свежий черновик) — в первом экране «Смета появится здесь», блоки сметы скрыты. <code>demo:true</code> (предпросмотр макета) — одна встроенная смета с пометкой «Пример» и без контактов.</li>
-        <li><b>Согласовать</b> ничего не отправляет само: собирает сообщение с составом (что убрано/изменено/добавлено) — клиент копирует его и сам пишет в MAX или Telegram. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>.</li>
-        <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, max, telegram}</code>. MAX — ссылка (max.ru/…) или номер: по номеру ссылки нет, карточка копирует номер. Telegram — ник, ссылка или номер. WhatsApp не показывается. Без контактов блок показывает только компанию, чужие контакты не подставляются. В шапке — «Позвонить» и первый мессенджер (MAX, затем Telegram).</li>
-        <li><b>Фото и видео</b> — из загрузок OpMax (<code>media:[{url, kind, name}]</code>). Объектом считается только файл, в имени которого есть тег или слово «объект»/«работа»: «теневой», «парящий», «линии», «трек», «карниз/ниша», «подсветка», «бесщелевой»… Такие фото встают перед библиотекой компании; страница ставит вперёд объекты с тем, что есть в смете, и отодвигает фото с фишками, которых в смете нет. Файл с «команда» в имени — фото команды; видео с тегом/«объект» в имени — ролик блока (в PDF печатается только с обложкой: файл «обложка»/«poster»).</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<!-- ЧТО ВАЖНО ЗНАТЬ -->
-<section class="sec needest" data-kp-block="terms">
-  <div class="wrap">
-    <span class="no">Коротко</span>
-    <h2 style="margin-top:10px">Что важно знать</h2>
-    <div class="know">
-      <div class="k" id="kSys"></div>
-      <div class="k"><div class="kv" id="kDrop">3–5 см</div><b>Заберёт высоты</b><p id="kDropP">Стеновой профиль с точечными светильниками. У ниши под шторы — до 10 см локально.</p></div>
-      <div class="k"><div class="kv">100 л/м²</div><b>Удержит при протечке</b><p>Вода собирается в «пузырь», сливаем через отверстие светильника, полотно возвращается на место.</p></div>
-      <div class="k"><div class="kv">Договор</div><b>Гарантия</b><p>Сроки гарантии на полотно и на монтаж прописываются в договоре. Светильники меняются без снятия полотна.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ОБЪЕКТЫ -->
-<section class="sec w" id="photosSec" data-kp-block="cases">
-  <div class="wrap">
-    <span class="no">Объекты</span>
-    <h2 style="margin-top:10px" id="phTitle">Наши работы</h2>
-    <p class="lead" id="phLead"></p>
-    <div class="photos" id="photos"></div>
-    <button type="button" class="btn g more" id="phMore" data-act="openLb" data-arg="0" hidden></button>
-  </div>
-</section>
-
-<!-- СОГЛАСОВАТЬ -->
-<section class="sec" id="accept" data-kp-block="accept">
-  <div class="wrap">
-    <div class="acc">
-      <div class="accr needest">
-        <div>
-          <div class="al">Итого</div>
-          <div class="av num" id="aTotal"></div>
-          <div class="ad" id="aDesc"></div>
-        </div>
-        <div class="acb"><button type="button" class="btn p" data-act="approve">Согласовать</button><small>Подготовим сообщение менеджеру с этим составом — отправляете вы сами</small></div>
-      </div>
-      <div class="okb needest" id="okBox" aria-live="polite"></div>
-      <div class="mgr" id="mgr">
-        <figure class="team" id="team" hidden><img id="teamImg" alt=""><figcaption id="teamCap"></figcaption></figure>
-        <div class="who">
-          <div class="wl">Ваш менеджер</div>
-          <div class="wn" id="mName"></div>
-          <div class="wr" id="mRole"></div>
-          <div class="cts" id="cts"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="foot">
-  <span id="fCo"></span><br>
-  <span id="fLine"></span>
+<div class="pv-demo" id="demoBox" hidden>
+  <b>Демо · примеры смет</b>
+  <select id="demoSel" aria-label="Демо-смета"></select>
+  <label><input type="checkbox" id="demoOffer"> Образец оффера (пример формулировок)</label>
+  <small>На платформе этой полосы нет — смета приходит из OpMax</small>
 </div>
-<div class="mbar needest">
-  <span class="mv"><b class="num" id="mTotal"></b><small id="mSub"></small></span>
-  <button type="button" data-act="go" data-arg="accept">Согласовать</button>
+
+<div class="kp-in pv-first">
+  <header class="kp-cover" data-kp-block="cover" data-cover="split" id="cover">
+    <div class="kp-cover-main">
+      <div class="kp-top">
+        <span class="kp-brand pv-brand" id="brand">__BRAND__</span>
+        <a class="kp-btn kp-btn--sm kp-btn--line kp-noprint" id="pdfBtn" href="#pdf" data-act="pdf" aria-label="Скачать PDF"><i class="kp-i kp-i-download" aria-hidden="true"></i><span class="kp-x-s" aria-hidden="true">PDF</span><span class="kp-x-l" aria-hidden="true">Скачать PDF</span></a>
+      </div>
+      <div class="kp-cover-title">
+        <h1 class="kp-hero" id="h1">Натяжной потолок</h1>
+        <p class="kp-cover-sub" id="hsub" hidden></p>
+      </div>
+      <dl class="kp-meta" id="meta"><div><dd>Коммерческое предложение</dd></div></dl>
+      <a class="pv-jump kp-noprint needest" href="#quote" data-act="go" data-arg="quote">Перейти к смете<i class="kp-i kp-i-arr-d kp-i--20" aria-hidden="true"></i></a>
+    </div>
+    <figure class="kp-cover-photo"><img id="coverImg" src="__COVER_SRC__" alt="Потолок с чёрным теневым профилем и точечным светильником в ванной комнате" width="1200" height="900" fetchpriority="high"></figure>
+  </header>
 </div>
-<div class="toast" id="toastEl" role="status" aria-live="polite"></div>
-<!-- data-kp-nodes — узлы плиток для секции «Фото узлов» в редакторе OpMax; список подставляет build.py из NODE_LABEL (potolki-app.js), руками не править -->
+
+<div class="kp-in kp-sec pv-empty" id="emptyBox"><div class="kp-card"><h2 class="kp-h2">Смета появится здесь</h2><p class="kp-lead kp-muted">Добавьте позиции в редакторе OpMax — состав, итог и узлы потолка построятся по ним сами.</p></div></div>
+
+<section class="kp-in kp-sec" data-kp-block="offer-included" aria-labelledby="h-included">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-included">В цену входит</h2></div>
+    <div class="kp-split-b"><div class="kp-card">
+      <ul class="kp-list" id="incl"></ul>
+      <div class="kp-excl" id="inclx" hidden><span class="kp-excl-i"><i class="kp-i kp-i-minus" aria-hidden="true"></i></span><p class="kp-item"><span class="kp-excl-k">Не входит</span><span id="inclxT"></span></p></div>
+    </div></div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec needest" data-kp-block="nodes" aria-labelledby="h-nodes">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-nodes">Из чего состоит потолок</h2><p class="kp-lead kp-muted" id="nodesLead"></p></div>
+    <div class="kp-split-b">
+      <div class="pv-nodes" id="nodes"></div>
+      <!-- Кнопки «Показать схему» нет (основатель, 29.09.2026): клиенту схема не нужна, на экране её нет;
+           в печати/PDF тело раскрывается правилом @media print — схема для бригады монтажа. Атрибута hidden у тела нет сознательно:
+           на платформе preflight Tailwind держит [hidden] в @layer base с !important, и он сильнее любого нашего правила печати. -->
+      <div id="cut-body">
+        <div class="kp-card pv-cut" id="cut"><svg viewBox="0 0 900 300" id="cutSvg" role="img" aria-label="Разрез потолка"></svg></div>
+        <div class="pv-leg" id="leg"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec" data-kp-block="offer-proof" aria-label="Доказательства"></section>
+
+<section class="kp-in kp-sec" data-kp-block="works" aria-labelledby="h-works">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-works">Наши работы</h2><p class="kp-lead kp-muted" id="phLead"></p>
+      <button class="kp-link pv-more kp-noprint" type="button" data-act="openLb" data-arg="0" id="phMore" hidden></button></div>
+    <div class="kp-split-b"><div class="kp-works pv-works" id="photos"></div></div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec" data-kp-block="offer-guarantee" aria-label="Гарантия">
+  <div class="kp-plate kp-guar"><span class="kp-check"><i class="kp-i kp-i-check" aria-hidden="true"></i></span><p class="kp-guar-line" id="gCard"></p><p class="kp-guar-text" id="gText" hidden></p></div>
+</section>
+
+<section class="kp-in kp-sec" data-kp-block="offer-bonus" aria-labelledby="h-bonus">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-bonus"></h2></div>
+    <div class="kp-split-b"><div class="kp-card"><ul class="kp-rows" id="bon"></ul><p class="kp-sm kp-muted kp-bn-note">Бонусы не входят в итог сметы и отдельно не оплачиваются.</p></div></div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec needest" data-kp-block="terms" aria-labelledby="h-terms">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-terms">Что важно знать</h2></div>
+    <div class="kp-split-b"><ul class="kp-facts" id="facts"></ul></div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec" data-kp-block="offer-capacity" aria-label="Сроки"><div class="kp-strip" id="strip"></div></section>
+
+<section class="kp-in kp-sec needest" id="quote" data-kp-block="smeta" aria-labelledby="h-smeta">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-smeta">Смета</h2><p class="kp-lead kp-muted" id="smLead"></p></div>
+    <div class="kp-split-b">
+      <div class="kp-card">
+        <div class="pv-top kp-noprint" aria-hidden="true"><span class="kp-sm">Итого</span><b class="kp-h3 kp-tab" data-total></b></div>
+        <div class="pv-vars" id="vars" role="radiogroup" aria-label="Вариант сметы" hidden></div>
+        <ul class="kp-qrows" id="items"></ul>
+        <dl class="pv-disc" id="sDisc" hidden></dl>
+        <div class="kp-sum" id="sum"><div class="kp-sum-l"><span class="kp-h3">Итого</span><span class="kp-sm kp-muted" id="sNote"></span><span class="kp-sm kp-muted" id="sOpt" hidden></span></div><span class="kp-num kp-tab" data-total></span></div>
+        <button class="kp-link pv-copy kp-noprint" type="button" data-act="copySpec"><i class="kp-i kp-i-copy kp-i--20" aria-hidden="true"></i><span id="copyLbl">Скопировать смету</span></button>
+      </div>
+      <div class="pv-edit" id="editBox">
+        <b>Служебная панель — только по ссылке с #edit</b>
+        <ul>
+          <li>Смета приходит из OpMax в <code>window.KP_CONFIG = {client, city, num, date, until, discount, items:[{name, unit, price, qty, optional, image}], contacts, media, nodePhotos, offer}</code>. Имена позиций — как в Excel/каталоге; страница сама определяет систему примыкания, свет, карнизы и строит плитки узлов и разрез. Единицы: м2, м² и кв.м считаются как м², м.п, пог.м, мп и м — как метры, шт — счётная позиция со степпером. Цена — рубли, можно с копейками; <code>optional:true</code> — позиция выключена, клиент может добавить; тумблер есть только у таких строк, обязательные не отключаются. <code>image:{url}</code> — фото узла, привязанное к позиции в каталоге OpMax: встаёт на плитку раньше библиотечного.</li>
+          <li>Два варианта одному клиенту: <code>variants:[{title, note, items}]</code> вместо <code>items</code>.</li>
+          <li><code>qty</code> — число (всё считается в комнате «Общая») или объект, где ключ — название комнаты, а значение — количество.</li>
+          <li>Номер, дата и срок — только из конфига: нет <code>num</code> — в обложке «Коммерческое предложение» без номера, нет <code>until</code> — таблетки «Цена действует до» нет. Ничего не выдумывается.</li>
+          <li>Конфиг без сметы (свежий черновик) — «Смета появится здесь», блоки сметы скрыты. <code>demo:true</code> (предпросмотр макета) — одна встроенная смета с пометкой «Пример» и без контактов.</li>
+          <li><b>Оффер продавца</b> — <code>offer:{outcome, included, proof, guarantee, bonuses, capacity}</code>: результат идёт подзаголовком обложки, остальные части — своими секциями «В цену входит», доказательства, гарантия, бонусы, загрузка. Пустое поле — секции нет. «Как в договоре» без срока и пункта даёт плиту с текстом по умолчанию, «Гарантии нет» убирает плиту и строку над кнопкой.</li>
+          <li><b>Подготовить сообщение менеджеру</b> ничего не отправляет и не принимает предложение: собирает сообщение с составом (что убрано/изменено/добавлено), клиент копирует его и сам пишет в MAX или Telegram. Принять предложение можно только кнопкой платформы. Событие <code>accept_click</code> уходит в аналитику OpMax (<code>window.__kpTrack</code>), правки сметы — <code>quote_toggle</code>, выбор варианта — <code>package_select</code>, клики по контактам — <code>cta_click</code>, PDF — <code>pdf_download</code>.</li>
+          <li><b>Контакты менеджера</b> — <code>contacts:{name, role, phone, max, telegram}</code>. MAX — ссылка (max.ru/…) или номер: по номеру ссылки нет, карточка копирует номер. Telegram — ник, ссылка или номер. WhatsApp не показывается. Нет ни одного канала — блока «Связаться с нами» нет вовсе, чужие контакты не подставляются.</li>
+          <li><b>Фото и видео</b> — из загрузок OpMax (<code>media:[{url, kind, name}]</code>). Объектом считается только файл, в имени которого есть тег или слово «объект»/«работа»: «теневой», «парящий», «линии», «трек», «карниз/ниша», «подсветка», «бесщелевой»… Такие фото встают перед библиотекой компании; страница ставит вперёд объекты с тем, что есть в смете, и отодвигает фото с фишками, которых в смете нет. Файл с «команда» в имени — фото команды; видео с тегом/«объект» в имени — ролик блока (в PDF печатается только с обложкой: файл «обложка»/«poster»).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec needest" id="accept" data-kp-block="accept" aria-labelledby="h-accept">
+  <p class="kp-gline" id="gLine"><span class="kp-check"><i class="kp-i kp-i-check" aria-hidden="true"></i></span><span></span></p>
+  <div class="kp-plate kp-accept">
+    <h2 class="kp-h1 kp-accept-q" id="h-accept">Состав подходит?</h2>
+    <p class="kp-lead" id="acLead"></p>
+    <p class="kp-note">Это предварительный расчёт: нажатие не заключает договор и ничего не списывает. Условия и оплату зафиксируем в договоре — свяжемся с вами для оформления.</p>
+    <div class="kp-actions"><button class="kp-btn kp-btn--primary" type="button" data-act="approve">Подготовить сообщение менеджеру</button></div>
+    <p class="kp-body pv-hint" id="acHint">Принять предложение целиком можно кнопкой «Принять предложение» внизу экрана: менеджер сразу получит уведомление и свяжется с вами по следующему шагу. Оплата при этом не списывается.</p>
+    <div class="pv-msg" id="msg" hidden tabindex="-1">
+      <p class="kp-lead kp-strong" id="msgHead"></p>
+      <p class="kp-body" id="msgText"></p>
+      <div class="kp-actions" id="msgActs"></div>
+      <p class="kp-sm kp-muted" id="msgState" role="status"></p>
+    </div>
+  </div>
+</section>
+
+<section class="kp-in kp-sec" id="contacts" data-kp-block="contacts" aria-labelledby="h-contacts">
+  <div class="kp-split">
+    <div class="kp-split-h"><h2 class="kp-h1" id="h-contacts">Связаться с нами</h2><p class="kp-lead kp-muted" id="mgrLine"></p></div>
+    <div class="kp-split-b">
+      <figure class="pv-team" id="team" hidden><img id="teamImg" alt="" width="1200" height="801"><figcaption id="teamCap"></figcaption></figure>
+      <div class="kp-contacts" id="cts"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="kp-in kp-foot" id="foot"><p class="kp-req" id="fReq" hidden></p><p id="fCo"></p><p id="fLine"></p></footer>
+
+</div></div>
+
+<div class="pv-layer" data-kp-theme="pavel">
+  <div class="pv-bar" id="bar"><span class="pv-bar-t"><small>Итого</small><b data-total></b></span><button class="pv-bar-b" type="button" data-act="go" data-arg="accept">К решению</button></div>
+  <div class="pv-lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Фото объектов">
+    <button type="button" class="x" data-act="closeLb" aria-label="Закрыть"><i class="kp-i kp-i-x" aria-hidden="true"></i></button>
+    <button type="button" class="pv" data-act="stepLb" data-arg="-1" aria-label="Предыдущее фото"><i class="kp-i kp-i-arr-l" aria-hidden="true"></i></button>
+    <img id="lbImg" alt="" width="1200" height="900">
+    <p id="lbCap"></p>
+    <button type="button" class="nx" data-act="stepLb" data-arg="1" aria-label="Следующее фото"><i class="kp-i kp-i-arr-r" aria-hidden="true"></i></button>
+  </div>
+</div>
+<!-- data-kp-nodes — узлы плиток для секции «Фото узлов» в редакторе OpMax; список подставляет build.py из NODE_LABEL (potolki-nodes.js), руками не править -->
 <div hidden data-kp-estimate data-kp-contacts data-kp-offer data-kp-nodes='__KP_NODES__'></div>
-<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Фото объектов">
-  <button type="button" class="x" data-act="closeLb" aria-label="Закрыть">×</button>
-  <button type="button" class="pv" data-act="stepLb" data-arg="-1" aria-label="Предыдущее">‹</button>
-  <img id="lbImg" alt="">
-  <div class="lbc" id="lbCap"></div>
-  <button type="button" class="nx" data-act="stepLb" data-arg="1" aria-label="Следующее">›</button>
-</div>
