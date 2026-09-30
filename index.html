@@ -1110,7 +1110,7 @@ function renderSum(){
                seamless:'Полотно подходит к стене вплотную: ни щели, ни вставки. Самый чистый вид.',
                float:'Лента за полотном по периметру: свет стекает по стенам, потолок будто висит в воздухе.' };
   var DROP = { standard:['3–5 см','Стеновой профиль.'], shadow:['3–4 см','Теневой профиль.'], seamless:['3 см','Бесщелевое примыкание.'], float:['5–6,5 см','Парящий профиль с лентой за полотном.'] };
-  document.getElementById('kSys').innerHTML = CUT[F.system] + '<b>Примыкание: ' + SYS_NAME[F.system] + '</b><p>' + SYSP[F.system]
+  document.getElementById('kSys').innerHTML = '<div class="kv">Примыкание</div><b>' + esc(SYS_NAME[F.system].charAt(0).toUpperCase() + SYS_NAME[F.system].slice(1)) + '</b><p>' + SYSP[F.system]
     + (F.corners ? ' Углы обрабатываются вручную — ' + Math.round(F.corners) + ' шт в смете.' : '') + '</p>';
   document.getElementById('kDrop').textContent = DROP[F.system][0];
   document.getElementById('kDropP').textContent = DROP[F.system][1] + (F.cornice ? ' У ниши под шторы — до 10 см локально.' : '');
